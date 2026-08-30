@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.api import admin, auth, query
+from app.api import admin, auth
 
 app = FastAPI(title="ADV RAG", version="0.1.0-lesson-9")
 app.include_router(admin.router)

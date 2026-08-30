@@ -1,0 +1,10 @@
+uv python pin 3.12
+uv venv --python 3.12
+
+
+
+Docker run in local
+docker compose up -d
+
+check the container failed error
+docker logs enterpriserag_mentoryashpatil-app-1 --tail 50

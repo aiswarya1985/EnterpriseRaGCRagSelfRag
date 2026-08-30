@@ -1,5 +1,5 @@
 import asyncio
-from typing import any
+from typing import Any
 
 from fastapi import APIRouter, Depends
 from loguru import logger
@@ -69,7 +69,7 @@ async def _ping_openai() -> bool:
 
 
 @router.get("/admin/health")
-async def health_check() -> dict[str, any]:
+async def health_check() -> dict[str, Any]:
     results= await asyncio.gather(
   _ping_postgres(),
         _ping_qdrant(),
