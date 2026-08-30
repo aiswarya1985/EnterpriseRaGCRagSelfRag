@@ -1,0 +1,10 @@
+* Defines a lightweight **Python 3.12-slim** base Docker image.
+* Installs system dependencies (**`libgl1`**, **`libglib2.0-0`**, **`curl`**) required for image processing and network tasks.
+* Cleans up package manager caches to minimize final image size.
+* Installs **`uv`**, a high-performance alternative to standard `pip`.
+* Sets `/app` as the primary working directory for container commands.
+* Copies `pyproject.toml` early to optimize Docker layer caching.
+* Installs **CPU-only PyTorch** dependencies to save space by avoiding heavy GPU drivers.
+* Installs the project package and PostgreSQL drivers (`psycopg[binary]`) directly into system Python.
+* Copies application code directories (`app/`, `scripts/`, `seed/`) into `/app`.
+* Sets Python environment flags, exposes port `8000`, and launches `scripts/serve.py` on container startup.

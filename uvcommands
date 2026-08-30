@@ -1,2 +1,7 @@
 uv python pin 3.12
 uv venv --python 3.12
+
+
+
+Docker run in local
+docker compose up -d
