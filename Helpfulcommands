@@ -8,3 +8,11 @@ docker compose up -d
 
 check the container failed error
 docker logs enterpriserag_mentoryashpatil-app-1 --tail 50
+
+seeding data to db
+
+uv run python -m scripts.seed_db
+
+check db connection
+
+docker compose exec postgres psql -U postgres -d adv_rag
