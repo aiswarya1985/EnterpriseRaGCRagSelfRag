@@ -6,6 +6,8 @@ from loguru import logger
 
 from app.config import settings
 
+
+
 router = APIRouter(tags=["admin"])
 
 async def _ping_postgres()->bool:
@@ -82,9 +84,9 @@ async def health_check() -> dict[str, Any]:
     qdrant_ok = bool(results[1]) if not isinstance(results[1], Exception) else False
     redis_ok = bool(results[2]) if not isinstance(results[2], Exception) else False
     openai_ok = bool(results[3]) if not isinstance(results[3], Exception) else False
-    tavily_ok = bool(results[4]) if not isinstance(results[4], Exception) else False
+    #tavily_ok = bool(results[4]) if not isinstance(results[4], Exception) else False
 
-    all_ok = postgres_ok and qdrant_ok and redis_ok and openai_ok and tavily_ok
+    all_ok = postgres_ok and qdrant_ok and redis_ok and openai_ok 
     status = "ok" if all_ok else "degraded"
 
     return {
@@ -92,8 +94,7 @@ async def health_check() -> dict[str, Any]:
         "qdrant": qdrant_ok,
         "postgres": postgres_ok,
         "redis": redis_ok,
-        "openai": openai_ok,
-        "tavily": tavily_ok
+        "openai": openai_ok
     }
 
 

@@ -2,6 +2,7 @@ from openai import OpenAI
 
 from app.config import settings
 from app.services.query_cache_service import query_cache
+from loguru import logger
 
 
 openai_client = OpenAI(api_key=settings.openai_api_key)
@@ -20,6 +21,7 @@ for loop iterates through and get the response and paste the
 vector at original index
 '''
 def embed_texts(texts: list[str], model: str | None = None) -> list[list[float]]:
+ try:
     if not texts:
         return []
     if model is None:
@@ -47,4 +49,7 @@ def embed_texts(texts: list[str], model: str | None = None) -> list[list[float]]
             query_cache.set_embedding(miss_texts[idx_in_misses], vector)
 
     return [r for r in results if r is not None]
+ except Exception as exc:
+        logger.error(f"Error in embed_texts: {type(exc).__name__} - {exc}")
+        raise
 

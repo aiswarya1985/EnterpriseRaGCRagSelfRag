@@ -1,5 +1,8 @@
 import argparse
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+os.environ["ACCELERATE_USE_CPU"] = "1"
+os.environ["FORCE_CPU"] = "1"  # Optional: used by some libraries
 import random
 import time
 from pathlib import Path
@@ -210,7 +213,7 @@ def main() -> None:
         help="Run migrations + users only; skip vector-store ingestion",
     )
     parser.add_argument(
-        "--noise-sample", default="150",
+        "--noise-sample", default="5",
         help="Number of noisy docs to sample (default 150). Use 0 or 'all'.",
     )
     args = parser.parse_args()

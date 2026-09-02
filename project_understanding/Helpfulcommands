@@ -6,6 +6,11 @@ uv venv --python 3.12
 Docker run in local
 docker compose up -d
 
+if you are making any changes in code
+then
+docker compose down
+docker compose up -d --build
+
 check the container failed error
 docker logs enterpriserag_mentoryashpatil-app-1 --tail 50
 
@@ -16,3 +21,7 @@ uv run python -m scripts.seed_db
 check db connection
 
 docker compose exec postgres psql -U postgres -d adv_rag
+
+check qdarnt collection
+
+http://localhost:6333/dashboard#/collections

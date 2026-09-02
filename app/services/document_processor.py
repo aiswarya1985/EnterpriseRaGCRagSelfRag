@@ -29,7 +29,7 @@ class DocumentProcessor:
     def __init__(self):
         pipeline_options = PdfPipelineOptions()
         pipeline_options.accelerator_options = AcceleratorOptions(
-            num_threads=8, device=AcceleratorDevice.MPS
+            num_threads=8, device=AcceleratorDevice.CPU
         )
         self.converter = DocumentConverter(
             format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
