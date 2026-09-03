@@ -31,6 +31,12 @@ class DocumentProcessor:
         pipeline_options.accelerator_options = AcceleratorOptions(
             num_threads=8, device=AcceleratorDevice.CPU
         )
+        # 2. Disable OCR if your PDFs already have selectable text
+        pipeline_options.do_ocr = False
+
+      # 3. Disable complex table extraction if table structures aren't essential
+        pipeline_options.do_table_structure = False
+        
         self.converter = DocumentConverter(
             format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
         )
