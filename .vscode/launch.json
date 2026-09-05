@@ -1,0 +1,40 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "FastAPI (admin.py)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "app.main:app",
+        "--reload",
+        "--port",
+        "8000"
+      ],
+      "jinja": true,
+      "justMyCode": true
+    },
+    {
+      "name": "Streamlit (app.py)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "streamlit",
+      "args": [
+        "run",
+        "scripts/streamlit_app.py",
+      ],
+      "justMyCode": true
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack Debug (Streamlit + FastAPI)",
+      "configurations": [
+        "FastAPI (admin.py)",
+        "Streamlit (app.py)"
+      ],
+      "stopAll": true
+    }
+  ]
+}
