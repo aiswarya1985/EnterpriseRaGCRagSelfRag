@@ -1,0 +1,12 @@
+create a launchsettings.json
+make sure env variable don't have comments inline
+
+Make sure to follow the below
+
+# === Logging ===
+# true in prod
+LOG_JSON=false
+
+Ensure docker desktop app service is turned off
+
+
