@@ -9,6 +9,7 @@ self.documents we are saying list of dict
 lock to prevebt deadlock when multiple threads are accessing the index
 '''
 class SparseVectorIndex:
+
     def __init__(self) -> None:
         self.vectorizer = TfidfVectorizer(stop_words="english")
         self.documents: list[dict] = []
@@ -45,7 +46,7 @@ class SparseVectorIndex:
 
     '''
     * **Vocabulary mapping:** Your 2 documents generate a global 5-word vocabulary (`engine`, `hybrid`, `python`, `search`, `sparse`).
-    * **Query vectorization:** `"python search"` converts to a $1 \times 5$ vector `[0, 0, 0.71, 0.71, 0]`, where `0.71` comes from $1 / \sqrt{2}$ L2 normalization.
+    * **Query vectorization:** `"python search"` converts to `[0, 0, 0.71, 0.71, 0]`, where `0.71` comes from $1 / \sqrt{2}$ L2 normalization.
     * **Matrix multiplication:** `cosine_similarity` computes dot products between the query vector and every matrix row; non-matching terms multiply by `0` and drop out.
     * **Score evaluation:** Doc 0 scores `0.70` (matches `"python"` and `"search"`), while Doc 1 scores `0.32` (matches `"search"` only).
     * **Ranking & output:** `argsort()[::-1]` sorts scores in descending order (`[0, 1]`), allowing `search()` to fetch and return the highest-scoring `RetrievedChunk` objects first.
@@ -76,16 +77,21 @@ class SparseVectorIndex:
             return results            
 
 
-    '''
-    result_lists = [
-    [Chunk_A, Chunk_B],  # List 0: Sparse results
-    [Chunk_A, Chunk_C]   # List 1: Dense results
-      ]
-      Document,Sparse Rank Score,Dense Rank Score,Total Fused Score
-     "Doc 1 (""Python search engine"")",1/(60+0+1)=0.01639,1/(60+0+1)=0.01639,0.01639+0.01639=0.03278
-     "Doc 2 (""Hybrid sparse search"")",1/(60+1+1)=0.01613,1/(60+1+1)=0.01613,0.01613+0.01613=0.03226
-    '''
-    def fuse_rrf(
+
+        '''
+        result_lists = [
+        [Chunk_A, Chunk_B],  # List 0: Sparse results
+        [Chunk_A, Chunk_C]   # List 1: Dense results
+        ]
+        Document,Sparse Rank Score,Dense Rank Score,Total Fused Score
+        "Doc 1 (""Python search engine"")",1/(60+0+1)=0.01639,1/(60+0+1)=0.01639,0.01639+0.01639=0.03278
+        "Doc 2 (""Hybrid sparse search"")",1/(60+1+1)=0.01613,1/(60+1+1)=0.01613,0.01613+0.01613=0.03226
+        '''
+
+
+
+
+def fuse_rrf(
         result_lists: list[list[RetrievedChunk]],
         rrf_k: int = 60,
     ) -> list[RetrievedChunk]:

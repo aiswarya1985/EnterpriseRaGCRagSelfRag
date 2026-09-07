@@ -7,6 +7,7 @@ from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from app.config import settings
 from app.models import RetrievedChunk
+from app.services.sparse_vector_service import fuse_rrf
 
 '''
 chunk = RetrievedChunk(text="Docling is an open-source library for document processing.", source="sample.pdf")
@@ -127,7 +128,7 @@ def hybrid_search(
     sparse_top_k: int = 20,
 ) -> list[RetrievedChunk]:
 
-    from app.services.sparse_vector_service import fuse_rrf
+   
     dense_results = search(query_embedding, top_k=sparse_top_k)
     sparse_index = _build_sparse_index()
     sparse_results = sparse_index.search(query_text, top_k=sparse_top_k)
