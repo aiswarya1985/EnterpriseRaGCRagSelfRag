@@ -1,0 +1,44 @@
+{
+    "answer": "```json\n{\n  \"answer\": \"Within a Pod, containers share resources such as storage volumes and network namespaces. All containers in a Pod can access shared storage volumes, which allows them to share data and maintain persistent data even if a container needs to be restarted. Additionally, containers within a Pod share the same network namespace, including the IP address and network ports, enabling them to communicate with each other using localhost. This shared environment allows containers to coordinate resource usage and communicate efficiently, forming a cohesive unit of service.\",\n  \"sources\": [\n    \"concepts__workloads__pods.html\"\n  ],\n  \"confidence\": 0.9\n}\n```",
+    "sources": [
+        "concepts__workloads__pods.html"
+    ],
+    "confidence": 0.7,
+    "pending_sql": null,
+    "cache_hit": false,
+    "cost_saved": "$0.00",
+    "metadata": {
+        "route": "rag",
+        "retrieved_chunks": [
+            {
+                "text": "containers.Storage in PodsA Pod can specify a set of shared storage  \nvolumes. All containers  \nin the Pod can access the shared volumes, allowing those containers to  \nshare data. Volumes also allow persistent data in a Pod to survive  \nin case one of the containers within needs to be restarted. See  \nStorage for more information on how  \nKubernetes implements shared storage and makes it available to Pods.Pod networkingEach Pod is assigned a unique IP address for each address family. Every  \ncontainer in a Pod shares the network namespace, including the IP address and  \nnetwork ports. Inside a Pod (and only then), the containers that belong to the Pod  \ncan communicate with one another using localhost. When containers in a Pod communicate  \nwith entities outside the Pod,  \nthey must coordinate how they use the shared network resources (such as ports).  \nWithin a Pod, containers share an IP address and port space, and  \ncan find each other via localhost. The containers in a Pod can also communicate  \nwith each other using standard inter-process communications like SystemV semaphores  \nor POSIX shared memory. Containers in different Pods have distinct IP addresses  \nand can not communicate by OS-level IPC without special configuration.  ",
+                "source": "concepts__workloads__pods.html",
+                "score": 0.7010796
+            },
+            {
+                "text": "containers.Storage in PodsA Pod can specify a set of shared storage  \nvolumes. All containers  \nin the Pod can access the shared volumes, allowing those containers to  \nshare data. Volumes also allow persistent data in a Pod to survive  \nin case one of the containers within needs to be restarted. See  \nStorage for more information on how  \nKubernetes implements shared storage and makes it available to Pods.Pod networkingEach Pod is assigned a unique IP address for each address family. Every  \ncontainer in a Pod shares the network namespace, including the IP address and  \nnetwork ports. Inside a Pod (and only then), the containers that belong to the Pod  \ncan communicate with one another using localhost. When containers in a Pod communicate  \nwith entities outside the Pod,  \nthey must coordinate how they use the shared network resources (such as ports).  \nWithin a Pod, containers share an IP address and port space, and  \ncan find each other via localhost. The containers in a Pod can also communicate  \nwith each other using standard inter-process communications like SystemV semaphores  \nor POSIX shared memory. Containers in different Pods have distinct IP addresses  \nand can not communicate by OS-level IPC without special configuration.  ",
+                "source": "concepts__workloads__pods.html",
+                "score": 0.7010796
+            },
+            {
+                "text": "potentially other facets of isolation - the same things that isolate a container. Within a Pod's context, the individual applications may have  \nfurther sub-isolations applied.A Pod is similar to a set of containers with shared namespaces and shared filesystem volumes.Pods in a Kubernetes cluster are used in two main ways:Pods that run a single container. The \"one-container-per-Pod\" model is the  \nmost common Kubernetes use case; in this case, you can think of a Pod as a  \nwrapper around a single container; Kubernetes manages Pods rather than managing  \nthe containers directly.Pods that run multiple containers that need to work together. A Pod can  \nencapsulate an application composed of  \nmultiple co-located containers that are  \ntightly coupled and need to share resources. These co-located containers  \nform a single cohesive unit.Grouping multiple co-located and co-managed containers in a single Pod is a  \nrelatively advanced use case. You should use this pattern only in specific  \ninstances in which your containers are tightly coupled.You don't need to run multiple containers to provide replication (for resilience  \nor capacity); if you need multiple replicas, see  ",
+                "source": "concepts__workloads__pods.html",
+                "score": 0.6395785
+            },
+            {
+                "text": "potentially other facets of isolation - the same things that isolate a container. Within a Pod's context, the individual applications may have  \nfurther sub-isolations applied.A Pod is similar to a set of containers with shared namespaces and shared filesystem volumes.Pods in a Kubernetes cluster are used in two main ways:Pods that run a single container. The \"one-container-per-Pod\" model is the  \nmost common Kubernetes use case; in this case, you can think of a Pod as a  \nwrapper around a single container; Kubernetes manages Pods rather than managing  \nthe containers directly.Pods that run multiple containers that need to work together. A Pod can  \nencapsulate an application composed of  \nmultiple co-located containers that are  \ntightly coupled and need to share resources. These co-located containers  \nform a single cohesive unit.Grouping multiple co-located and co-managed containers in a single Pod is a  \nrelatively advanced use case. You should use this pattern only in specific  \ninstances in which your containers are tightly coupled.You don't need to run multiple containers to provide replication (for resilience  \nor capacity); if you need multiple replicas, see  ",
+                "source": "concepts__workloads__pods.html",
+                "score": 0.6395785
+            },
+            {
+                "text": "(e.g., ServiceAccount,  \nConfigMap,  \nSecret, etc).Pods with multiple containersPods are designed to support multiple cooperating processes (as containers) that form  \na cohesive unit of service. The containers in a Pod are automatically co-located and  \nco-scheduled on the same physical or virtual machine in the cluster. The containers  \ncan share resources and dependencies, communicate with one another, and coordinate  \nwhen and how they are terminated.Pods in a Kubernetes cluster are used in two main ways:Pods that run a single container. The \"one-container-per-Pod\" model is the  \nmost common Kubernetes use case; in this case, you can think of a Pod as a  \nwrapper around a single container; Kubernetes manages Pods rather than managing  \nthe containers directly.Pods that run multiple containers that need to work together. A Pod can  \nencapsulate an application composed of  \nmultiple co-located containers that are  \ntightly coupled and need to share resources. These co-located containers  \nform a single cohesive unit of service-for example, one container serving data  \nstored in a shared volume to the public, while a separate  \nsidecar container  ",
+                "source": "concepts__workloads__pods.html",
+                "score": 0.63790655
+            }
+        ],
+        "cache_hit": false,
+        "reflection_iterations": 0,
+        "reflection_score": null,
+        "refined_question": null
+    }
+}

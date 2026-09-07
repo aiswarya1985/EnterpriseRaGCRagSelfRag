@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="650" viewBox="0 0 1100 650">
+  <style>
+    .box { fill:#e8f1ff; stroke:#2563eb; stroke-width:2; rx:12; }
+    .error { fill:#ffe8e8; stroke:#dc2626; stroke-width:2; rx:12; }
+    .text { font:16px Arial; text-anchor:middle; fill:#111827; }
+    .arrow { stroke:#374151; stroke-width:2; marker-end:url(#arrow); }
+    .label { font:14px Arial; fill:#374151; }
+  </style>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10"
+            refX="9" refY="3" orient="auto">
+      <path d="M0,0 L10,3 L0,6 Z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <text x="550" y="35" class="text" font-size="24" font-weight="bold">
+    Submit Query Flow
+  </text>
+
+  <rect x="390" y="60" width="320" height="55" class="box"/>
+  <text x="550" y="94" class="text">User submits question in Streamlit</text>
+
+  <line x1="550" y1="115" x2="550" y2="150" class="arrow"/>
+
+  <rect x="390" y="150" width="320" height="55" class="box"/>
+  <text x="550" y="184" class="text">POST /query</text>
+
+  <line x1="550" y1="205" x2="550" y2="240" class="arrow"/>
+
+  <rect x="390" y="240" width="320" height="55" class="box"/>
+  <text x="550" y="274" class="text">get_current_user() authentication</text>
+
+  <line x1="550" y1="295" x2="550" y2="330" class="arrow"/>
+
+  <rect x="390" y="330" width="320" height="55" class="box"/>
+  <text x="550" y="364" class="text">QueryRequest validation</text>
+
+  <line x1="550" y1="385" x2="550" y2="420" class="arrow"/>
+
+  <rect x="390" y="420" width="320" height="55" class="box"/>
+  <text x="550" y="454" class="text">run_rag(body.question, flags)</text>
+
+  <line x1="550" y1="475" x2="550" y2="510" class="arrow"/>
+
+  <rect x="390" y="510" width="320" height="55" class="box"/>
+  <text x="550" y="544" class="text">Retrieval → Qdrant → LLM answer</text>
+
+  <line x1="710" y1="267" x2="850" y2="267" class="arrow"/>
+  <rect x="850" y="240" width="180" height="55" class="error"/>
+  <text x="940" y="274" class="text">401 Unauthorized</text>
+
+  <line x1="710" y1="357" x2="850" y2="357" class="arrow"/>
+  <rect x="850" y="330" width="180" height="55" class="error"/>
+  <text x="940" y="364" class="text">422 Validation Error</text>
+
+  <line x1="550" y1="565" x2="550" y2="600" class="arrow"/>
+  <text x="550" y="625" class="text">ChatResponse returned to Streamlit</text>
+</svg>

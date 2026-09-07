@@ -22,8 +22,31 @@
       "module": "streamlit",
       "args": [
         "run",
-        "scripts/streamlit_app.py",
+        "scripts/streamlit_app.py"
       ],
+      "justMyCode": true
+    },
+    {
+      "name": "Debug run_ragas.py",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "eval.run_ragas",
+      "args": [
+        "--profile",
+        "all"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Attach to run_ragas.py",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 5678
+      },
       "justMyCode": true
     }
   ],
