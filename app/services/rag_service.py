@@ -17,23 +17,50 @@ from app.services.vector_store import search, hybrid_search, sparse_search
 from app.services.query_cache_service import query_cache
 
 
-'''[[0.012, -0.045, ...]] we will take the inner list
-that is why embeddings[0]'''
-def _retrieve(question: str, top_k: int=5) -> list[RetrievedChunk]:
-   embeddings=embed_texts([question])
-   return search(embeddings[0],top_k=top_k)
+def _flag(flags: dict | None, key: str, default):
+    if not isinstance(flags, dict):
+        return default
+    return flags.get(key, default)
 
-'''{
-    "text": "Based on the provided context, the answer is...",
-    "tokens": 145,
-    "model": "gpt-4",
-    "finish_reason": "stop"
-}'''
-def _generate(question:str,chunks:list[RetrievedChunk])->ChatResponse:
-    spotlighted=build_spotlighted_context(chunks)
-    system=build_system_prompt()
-    user_msg=f"{spotlighted}\n\nQuestion:{question}"
-    raw=generate(system,user_msg)["text"]
+
+
+def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedChunk]:
+    final_top_k = int(_flag(flags, "top_k", 5))
+    mode = _flag(flags, "search_mode", "dense")
+    rerank = bool(_flag(flags, "enable_rerank", False))
+    hyde = bool(_flag(flags, "enable_hyde", False))
+    enable_crag = bool(_flag(flags, "enable_crag", settings.crag_enabled_by_default))
+
+    retrieve_k = settings.reranker_initial_top_k if rerank else final_top_k
+    
+    if mode == "sparse":
+        chunks = sparse_search(question, top_k=retrieve_k)
+    elif mode == "hybrid":
+        query_embedding = embed_texts([question])[0]
+        chunks = hybrid_search(query_embedding, question, top_k=retrieve_k)
+    else:
+        query_embedding = embed_texts([question])[0]
+        chunks = search(query_embedding, top_k=retrieve_k)
+
+    return chunks
+
+
+def _generate(
+    question: str,
+    chunks: list[RetrievedChunk],
+    flags: dict | None = None,
+) -> ChatResponse:
+    enable_self_reflective = bool(_flag(flags, "enable_self_reflective", False))
+
+    spotlighted = build_spotlighted_context(chunks)
+    system = build_system_prompt()
+
+    def _raw(q: str) -> str:
+        return generate(system, f"{spotlighted}\n\nQuestion: {q}")["text"]
+
+    working_q = question
+    raw = _raw(working_q)
+    
     chunk_previews = [
         RetrievedChunkPreview(text=c.text, source=c.source, score=c.score) for c in chunks
     ]
@@ -43,31 +70,26 @@ def _generate(question:str,chunks:list[RetrievedChunk])->ChatResponse:
         confidence=0.7,
         metadata=ResponseMetadata(
             route="rag",
-            retrieved_chunks=chunk_previews            
+            retrieved_chunks=chunk_previews,         
         ),
     )
 
-def _flag_top_k_from_flags(flags:dict | int| None)-> int:
-    if flags is None:
-        return 5       
-    if isinstance(flags, int):
-        return flags
-    return int(flags.get("top_k", 5))
- 
-def run_rag(question:str, flags:dict | int| None=None)->ChatResponse:
-    top_k=_flag_top_k_from_flags(flags)
-    logger.info(f"Running RAG for question: {question} with top_k={top_k}")
-    chunks=_retrieve(question,top_k)
-    return _generate(question,chunks)
 
 
-def run_rag_with_trace(question:str, flags:dict | int| None=None)->tuple[ChatResponse, list[RetrievedChunk]]:
-    top_k=_flag_top_k_from_flags(flags)
-    logger.info(f"Running RAG with trace for question: {question} with top_k={top_k}")
-    chunks=_retrieve(question,top_k)
-    response=_generate(question,chunks)
-    return response,chunks
+def run_rag(question: str, flags: dict | int | None = None) -> ChatResponse:
+    chunks = _retrieve(question, flags=flags if isinstance(flags, dict) else None)
+    response = _generate(question, chunks, flags=flags if isinstance(flags, dict) else None)
+    return response
+
+
+
+def run_rag_with_trace(
+    question: str, flags: dict | int | None = None
+) -> tuple[ChatResponse, list[RetrievedChunk]]:
+    
+    chunks = _retrieve(question, flags=flags if isinstance(flags, dict) else None)
+    response = _generate(question, chunks, flags=flags if isinstance(flags, dict) else None)
+    return response, chunks
 
 
 run_rag_with_trace_no_cache = run_rag_with_trace
-

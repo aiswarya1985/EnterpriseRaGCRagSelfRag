@@ -14,5 +14,8 @@ async def query(
     processes the request using the RAG service, and returns a chat response.
     """
     return run_rag(body.question,   
-                   flags={"top_k": body.top_k} 
-                   if body.top_k is not None else None)
+                   flags={
+                   "top_k": body.top_k  if body.top_k is not None else None,
+                   "search_mode": body.search_mode if body.search_mode is not None else None
+                   }
+    )
