@@ -1,0 +1,60 @@
+Think of evaluating a Retrieval-Augmented Generation (RAG) system like checking a student's answer on an open-book exam.
+
+The student gets a set of textbook pages (Context) and must write an answer to a teacher’s question (Prompt). Here is how the four evaluation metrics break down using this analogy:
+
+
+1. Faithfulness (Grounding)
+•	The Question: Is the student telling the truth based only on the textbook pages provided, or are they making things up?
+
+•	Analogy: If the textbook says "The library opens at 9 AM," but the student writes "The library opens at 9 AM and serves free coffee," the coffee part is an hallucination. Even if it's true in real life, it wasn't in the context.
+
+•	Goal: High faithfulness means 100% of the facts in the answer can be traced directly back to the retrieved context.
+
+2. Answer Relevancy
+•	The Question: Did the student actually answer the question asked, or are they rambling about unrelated facts?
+
+•	Analogy: The teacher asks, "Why did the engine overheat?" The student writes a 500-word correct history of how cars were invented. The facts are accurate, but the answer completely misses the point of the question.
+
+•	Goal: High answer relevancy means the response is direct, concise, and addresses the prompt without fluff or side tangents.
+
+3. Context Precision
+•	The Question: Did the assistant retrieve neat, useful textbook pages, or did it hand over a stack of junk with the answer buried somewhere inside?
+
+•	Analogy: You ask for a recipe for chocolate cake. Your assistant hands you a 300-page cooking manual where the cake recipe is hidden on page 182, flanked by 299 pages of soup recipes.
+
+•	Goal: High context precision means the retrieved passages are signal-rich, concise, and ranked so the most useful information appears right at the top.
+
+4. Context Recall
+•	The Question: Did the assistant retrieve all the necessary textbook pages needed to answer the question, or did it leave out key clues?
+
+•	Analogy: The question asks, "What are the 3 ingredients needed to make bread?" The assistant only brings you pages that mention flour and water, completely missing the page about yeast. You can't write a complete answer because essential context is missing.
+
+•	Goal: High context recall means no critical information was left behind in the database during retrieval.
+At a Glance
+Metric	Measured Between	Core Question
+Faithfulness	Answer vs. Context	Did the model stick to the facts provided?
+Answer Relevancy	Answer vs. Question	Did the model answer what was asked?
+Context Precision	Context vs. Question	Is the retrieved context clean and relevant?
+Context Recall	Context vs. Ground Truth	Did we fetch all the context needed for a full answer?
+
+
+
+1.	Load questions from seed_questions.yaml.
+2.	For each question, call the normal RAG pipeline:
+o	retrieve contexts
+o	generate an answer with the application LLM
+3.	Store the question, answer, contexts, and ground truth in rows.
+4.	Call:
+metrics = run_ragas(rows)
+•	
+•	
+•	
+•	
+5.	Ragas evaluates each answer, usually using a separate grader LLM, for:
+•	faithfulness
+•	context_precision
+•	context_recall
+•	answer_relevancy
+
+6.	Store the scores under ragas_metrics, then calculate/report aggregate averages.
+
