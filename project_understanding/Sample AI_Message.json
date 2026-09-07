@@ -1,0 +1,48 @@
+{
+  "response": {
+    "id": "chatcmpl-ELQtJ9sh5w2F2PLahIdsFcpFHTLAp",
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "logprobs": null,
+        "message": {
+          "content": "To send traffic to Pods from inside the cluster, you can use a Service. A Service provides stable networking for Pods, allowing you to access them using a consistent endpoint. The most common type of Service for internal traffic is the ClusterIP, which is accessible only within the cluster. You can create a Service that targets the Pods you want to send traffic to, and then use the Service's name or IP address to route the traffic to those Pods (source: service.md).",
+          "refusal": null,
+          "role": "assistant",
+          "annotations": [],
+          "audio": null,
+          "function_call": null,
+          "tool_calls": null
+        }
+      }
+    ],
+    "created": 1788776965,
+    "model": "gpt-4o-mini-2024-07-18",
+    "object": "chat.completion",
+    "metadata": null,
+    "moderation": null,
+    "service_tier": "default",
+    "system_fingerprint": "fp_da56f7d23d",
+    "usage": {
+      "completion_tokens": 95,
+      "prompt_tokens": 228,
+      "total_tokens": 323,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "audio_tokens": 0,
+        "reasoning_tokens": 0,
+        "rejected_prediction_tokens": 0,
+        "text_tokens": null
+      },
+      "prompt_tokens_details": {
+        "audio_tokens": 0,
+        "cache_write_tokens": null,
+        "cached_tokens": 0,
+        "image_tokens": 0,
+        "text_tokens": null
+      }
+    }
+  },
+  "answer": "To send traffic to Pods from inside the cluster, you can use a Service. A Service provides stable networking for Pods, allowing you to access them using a consistent endpoint. The most common type of Service for internal traffic is the ClusterIP, which is accessible only within the cluster. You can create a Service that targets the Pods you want to send traffic to, and then use the Service's name or IP address to route the traffic to those Pods (source: service.md)."
+}
