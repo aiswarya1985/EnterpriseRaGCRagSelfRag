@@ -15,6 +15,7 @@ from app.services.embedding_service import embed_texts
 from app.services.llm_service import generate
 from app.services.vector_store import search, hybrid_search, sparse_search
 from app.services.query_cache_service import query_cache
+from app.services.reranking import Reranker
 
 
 def _flag(flags: dict | None, key: str, default):
@@ -22,7 +23,10 @@ def _flag(flags: dict | None, key: str, default):
         return default
     return flags.get(key, default)
 
-
+def _enable_rerank(flags: dict | None) -> bool:
+   if not isinstance(flags, dict):
+     return False
+   return bool(flags.get("enable_rerank", False))
 
 def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedChunk]:
     final_top_k = int(_flag(flags, "top_k", 5))
@@ -41,6 +45,11 @@ def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedChunk]:
     else:
         query_embedding = embed_texts([question])[0]
         chunks = search(query_embedding, top_k=retrieve_k)
+
+    if rerank and chunks:
+        chunks = Reranker.rerank(question, chunks, top_k=final_top_k)
+    else:
+        chunks = chunks[:final_top_k]
 
     return chunks
 
@@ -77,6 +86,8 @@ def _generate(
 
 
 def run_rag(question: str, flags: dict | int | None = None) -> ChatResponse:
+    rerank=_flag(flags, "enable_rerank", False)
+    logger.info(f"Running RAG with question: {question}, flags: {flags}, rerank: {rerank}")
     chunks = _retrieve(question, flags=flags if isinstance(flags, dict) else None)
     response = _generate(question, chunks, flags=flags if isinstance(flags, dict) else None)
     return response
