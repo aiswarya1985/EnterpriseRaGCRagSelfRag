@@ -3,6 +3,7 @@ from typing import cast
 
 from app.config import settings
 from app.models import RetrievedChunk
+import scipy
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +75,10 @@ class Reranker:
         """
         model = self._load_local_model()
         pairs = [[query, chunk.text] for chunk in chunks]
-        scores = cast("list[float]", model.predict(pairs))
+    
+        # Get raw logits and convert to 0.0 - 1.0 probability
+        raw_scores = model.predict(pairs)
+        scores = scipy.special.expit(raw_scores)
 
         scored = [
             RetrievedChunk(text=chunk.text, source=chunk.source, score=float(score))

@@ -7,7 +7,7 @@ PROFILES: dict[str, dict] = {
         "enable_rerank": False,
         "enable_crag": False,
         "enable_self_reflective": False,
-        "top_k": 5,
+        "top_k": 20,
     }, 
     "sparse_only": {
         "search_mode": "sparse",
@@ -15,7 +15,7 @@ PROFILES: dict[str, dict] = {
         "enable_rerank": False,
         "enable_crag": False,
         "enable_self_reflective": False,
-        "top_k": 5,
+        "top_k": 20,
     },
     "hybrid": {
         "search_mode": "hybrid",
@@ -23,7 +23,7 @@ PROFILES: dict[str, dict] = {
         "enable_rerank": False,
         "enable_crag": False,
         "enable_self_reflective": False,
-        "top_k": 5,
+        "top_k": 20,
     },
     "hybrid+rerank": {
         "search_mode": "hybrid",
@@ -31,7 +31,7 @@ PROFILES: dict[str, dict] = {
         "enable_rerank": True,
         "enable_crag": False,
         "enable_self_reflective": False,
-        "top_k": 5,
+        "top_k": 20,
     },
     "hybrid+rerank+hyde": {
         "search_mode": "hybrid",
@@ -39,7 +39,7 @@ PROFILES: dict[str, dict] = {
         "enable_rerank": True,
         "enable_crag": False,
         "enable_self_reflective": False,
-        "top_k": 5,
+        "top_k": 20,
     },
     "hybrid+rerank+crag": {
         "search_mode": "hybrid",
@@ -47,7 +47,7 @@ PROFILES: dict[str, dict] = {
         "enable_rerank": True,
         "enable_crag": True,
         "enable_self_reflective": False,
-        "top_k": 5,
+        "top_k": 20,
     },
     "all": {
         "search_mode": "hybrid",
@@ -55,6 +55,6 @@ PROFILES: dict[str, dict] = {
         "enable_rerank": True,
         "enable_crag": True,
         "enable_self_reflective": True,
-        "top_k": 5,
+        "top_k": 20,
     },
 }
