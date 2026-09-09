@@ -60,3 +60,4 @@ commands.md
 terraform/.terraform/ 
 
 gcp_commands.txt
+logs/logs_rag.txt
