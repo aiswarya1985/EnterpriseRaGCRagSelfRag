@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from app.middleware.auth import User, get_current_user
 from app.models import ChatResponse, QueryRequest
-from app.services.rag_service import run_rag
+from app.services.rag_service import run_rag_async
 from loguru import logger
 
 router=APIRouter(tags=["query"])
@@ -15,7 +15,7 @@ async def query(
     processes the request using the RAG service, and returns a chat response.
     """
     logger.info(f"Received query request: {body.question} with flags: top_k={body.top_k}, search_mode={body.search_mode}, enable_rerank={body.enable_rerank}")
-    return run_rag(
+    return await run_rag_async(
                body.question,   
                    flags=
                    {

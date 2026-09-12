@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from loguru import logger
 
 from app.config import settings
@@ -29,12 +31,12 @@ def _enable_rerank(flags: dict | None) -> bool:
      return False
    return bool(flags.get("enable_rerank", False))
 
-def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedChunk]:
+async def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedChunk]:
     logger.info(f"flags: {flags}")
     final_top_k = int(_flag(flags, "top_k", 5))
     mode = _flag(flags, "search_mode", "dense")
     rerank = bool(_flag(flags, "rerank", False))
-    hyde = bool(_flag(flags, "enable_hyde", False))
+    hyde = bool(_flag(flags, "hyde", False))
     enable_crag = bool(_flag(flags, "enable_crag", settings.crag_enabled_by_default))
 
     retrieve_k = settings.reranker_initial_top_k if rerank else final_top_k
@@ -42,11 +44,11 @@ def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedChunk]:
     
     if mode == "sparse":
         chunks = sparse_search(question, top_k=retrieve_k)
-    elif mode == "hybrid":
+    elif mode == "hybrid" and not hyde:
         query_embedding = embed_texts([question])[0]
         chunks = hybrid_search(query_embedding, question, top_k=retrieve_k)
-    elif hyde:
-        chunks=HyDERetriever().retrieve(question, top_k=retrieve_k)    
+    elif hyde and mode == "hybrid":
+        chunks = await HyDERetriever().retrieve(question, top_k=retrieve_k)
     else:
         query_embedding = embed_texts([question])[0]
         logger.info(f"Query embedding sample: {len(query_embedding)}")
@@ -95,11 +97,15 @@ def _generate(
 
 
 
-def run_rag(question: str, flags: dict | int | None = None) -> ChatResponse:
+async def run_rag_async(question: str, flags: dict | int | None = None) -> ChatResponse:
     logger.info(f"Running RAG with question: {question}, flags: {flags}")
-    chunks = _retrieve(question, flags=flags if isinstance(flags, dict) else None)
+    chunks = await _retrieve(question, flags=flags if isinstance(flags, dict) else None)
     response = _generate(question, chunks, flags=flags if isinstance(flags, dict) else None)
     return response
+
+
+def run_rag(question: str, flags: dict | int | None = None) -> ChatResponse:
+    return asyncio.run(run_rag_async(question, flags))
 
 
 
@@ -107,7 +113,7 @@ def run_rag_with_trace(
     question: str, flags: dict | int | None = None
 ) -> tuple[ChatResponse, list[RetrievedChunk]]:
     
-    chunks = _retrieve(question, flags=flags if isinstance(flags, dict) else None)
+    chunks = asyncio.run(_retrieve(question, flags=flags if isinstance(flags, dict) else None))
     response = _generate(question, chunks, flags=flags if isinstance(flags, dict) else None)
     return response, chunks
 

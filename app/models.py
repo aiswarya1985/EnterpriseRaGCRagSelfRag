@@ -71,7 +71,13 @@ class QueryRequest(BaseModel):
         max_length=2000,
         description="User question",
     ) 
-
+    enable_rerank: bool = False
+    top_k: int = Field(default=5, ge=1, le=50)
+    enable_hyde: bool = False
+    search_mode: Literal["dense", "sparse", "hybrid"] = "dense"
+    enable_crag: bool = True
+    enable_self_reflective: bool = False
+    
     @field_validator("question")
     @classmethod
     def validate_question_content(cls, v: str) -> str:
