@@ -108,9 +108,12 @@ class Reranker:
 
         # Map results back to RetrievedChunk
         reranked: list[RetrievedChunk] = []
+        logger.info(f"Voyage reranker result: {result}")
         for item in result.results:
             idx = item.index
+            logger.info(f"Rank_Index_voyage: {idx}")
             chunk = chunks[idx]
+            logger.info(f"chunk_reranker_voyage: {chunk}")
             reranked.append(
                 RetrievedChunk(
                     text=chunk.text,
