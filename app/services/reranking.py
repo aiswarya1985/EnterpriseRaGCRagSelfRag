@@ -1,11 +1,9 @@
-import logging
+from loguru import logger
 from typing import cast
 
 from app.config import settings
 from app.models import RetrievedChunk
 import scipy
-
-logger = logging.getLogger(__name__)
 
 
 class Reranker:
@@ -37,6 +35,7 @@ class Reranker:
         chunks: list[RetrievedChunk],
         top_k: int | None = None,
     ) -> list[RetrievedChunk]:
+        logger.info("entering rerank function")
         if not chunks:
             return []
         
@@ -74,11 +73,15 @@ class Reranker:
             ]         
         """
         model = self._load_local_model()
+        logger.info(f"Top_k: {top_k}")
+        logger.info(f"Loaded local reranker model: {model}")
         pairs = [[query, chunk.text] for chunk in chunks]
     
         # Get raw logits and convert to 0.0 - 1.0 probability
         raw_scores = model.predict(pairs)
+        logger.info(f"Raw scores from reranker: {raw_scores}")
         scores = scipy.special.expit(raw_scores)
+        logger.info(f"Converted scores to probabilities: {scores}")
 
         scored = [
             RetrievedChunk(text=chunk.text, source=chunk.source, score=float(score))

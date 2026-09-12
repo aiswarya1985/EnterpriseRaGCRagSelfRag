@@ -9,6 +9,7 @@ docker compose up -d
 if you are making any changes in code
 then
 docker compose down
+docker compose build
 docker compose up -d --build
 
 check the container failed error

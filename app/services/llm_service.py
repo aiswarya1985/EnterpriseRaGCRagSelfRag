@@ -1,3 +1,4 @@
+from loguru import logger
 from openai import OpenAI
 
 from app.config import settings
@@ -16,6 +17,7 @@ def generate(system_prompt: str, user_message: str, model: str | None = None, te
         ],
         temperature=temperature,
     )
+    logger.info(f"LLM response: {response.choices[0].message.content if response.choices else 'No content'}")
 
     text = response.choices[0].message.content or ""
 
@@ -24,6 +26,7 @@ def generate(system_prompt: str, user_message: str, model: str | None = None, te
         "completion_tokens": response.usage.completion_tokens if response.usage else 0,
         "total_tokens": response.usage.total_tokens if response.usage else 0,
     }
+    logger.info(f"Token usage: {usage}")
 
     return {"text": text, "usage": usage}
 

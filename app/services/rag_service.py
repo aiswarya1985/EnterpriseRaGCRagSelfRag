@@ -29,13 +29,15 @@ def _enable_rerank(flags: dict | None) -> bool:
    return bool(flags.get("enable_rerank", False))
 
 def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedChunk]:
+    logger.info(f"flags: {flags}")
     final_top_k = int(_flag(flags, "top_k", 5))
     mode = _flag(flags, "search_mode", "dense")
-    rerank = bool(_flag(flags, "enable_rerank", False))
+    rerank = bool(_flag(flags, "rerank", False))
     hyde = bool(_flag(flags, "enable_hyde", False))
     enable_crag = bool(_flag(flags, "enable_crag", settings.crag_enabled_by_default))
 
     retrieve_k = settings.reranker_initial_top_k if rerank else final_top_k
+    logger.info(f"final flags: top_k={final_top_k}, search_mode={mode}, enable_rerank={rerank}, enable_hyde={hyde}, enable_crag={enable_crag}")
     
     if mode == "sparse":
         chunks = sparse_search(question, top_k=retrieve_k)
@@ -44,10 +46,14 @@ def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedChunk]:
         chunks = hybrid_search(query_embedding, question, top_k=retrieve_k)
     else:
         query_embedding = embed_texts([question])[0]
+        logger.info(f"Query embedding sample: {len(query_embedding)}")
         chunks = search(query_embedding, top_k=retrieve_k)
+        logger.info(f"Retrieved chunks: {chunks[0] if chunks else 'No chunks retrieved'}")
 
     if rerank and chunks:
-        chunks = Reranker.rerank(question, chunks, top_k=final_top_k)
+        logger.info("reranking true")
+        reranker = Reranker()
+        chunks = reranker.rerank(question, chunks, top_k=final_top_k)
     else:
         chunks = chunks[:final_top_k]
 
@@ -65,6 +71,7 @@ def _generate(
     system = build_system_prompt()
 
     def _raw(q: str) -> str:
+        logger.info(f"spotlighted context: {spotlighted}, question: {q}, system prompt: {system}")
         return generate(system, f"{spotlighted}\n\nQuestion: {q}")["text"]
 
     working_q = question
@@ -86,8 +93,7 @@ def _generate(
 
 
 def run_rag(question: str, flags: dict | int | None = None) -> ChatResponse:
-    rerank=_flag(flags, "enable_rerank", False)
-    logger.info(f"Running RAG with question: {question}, flags: {flags}, rerank: {rerank}")
+    logger.info(f"Running RAG with question: {question}, flags: {flags}")
     chunks = _retrieve(question, flags=flags if isinstance(flags, dict) else None)
     response = _generate(question, chunks, flags=flags if isinstance(flags, dict) else None)
     return response

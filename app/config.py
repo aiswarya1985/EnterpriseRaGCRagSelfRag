@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     hyde_enabled_by_default: bool = False
     hybrid_search_enabled: bool = True
     rrf_k: int = 60
-    reranker_backend: str = "local"
+    reranker_backend: str = "voyage"
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     voyage_api_key: str = ""
     voyage_model: str = "rerank-2.5"

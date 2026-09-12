@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from app.api import admin, auth,query
 
-from utilities.logger import setup_logger
+from app.utilities.logger import setup_logger
 
 setup_logger()
 
