@@ -12,6 +12,7 @@ from app.models import (
 from app.security.spotlighting import build_spotlighted_context
 from app.security.system_prompt import build_system_prompt
 from app.services.embedding_service import embed_texts
+from app.services.hyde import HyDERetriever
 from app.services.llm_service import generate
 from app.services.vector_store import search, hybrid_search, sparse_search
 from app.services.query_cache_service import query_cache
@@ -44,6 +45,8 @@ def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedChunk]:
     elif mode == "hybrid":
         query_embedding = embed_texts([question])[0]
         chunks = hybrid_search(query_embedding, question, top_k=retrieve_k)
+    elif hyde:
+        chunks=HyDERetriever().retrieve(question, top_k=retrieve_k)    
     else:
         query_embedding = embed_texts([question])[0]
         logger.info(f"Query embedding sample: {len(query_embedding)}")
