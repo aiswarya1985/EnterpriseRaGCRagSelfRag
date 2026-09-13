@@ -23,5 +23,6 @@ async def query(
                    "search_mode": body.search_mode if body.search_mode is not None else None,
                    "rerank": body.enable_rerank if body.enable_rerank is not None else None,
                    "hyde": body.enable_hyde if body.enable_hyde is not None else None,
+                   "crag": body.enable_crag if body.enable_crag is not None else None,    
                    }
     )

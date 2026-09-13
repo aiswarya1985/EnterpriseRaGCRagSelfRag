@@ -13,6 +13,8 @@ from app.models import (
 )
 from app.security.spotlighting import build_spotlighted_context
 from app.security.system_prompt import build_system_prompt
+from app.services.crag import crag_pipeline
+from app.services.crag import crag_pipeline
 from app.services.embedding_service import embed_texts
 from app.services.hyde import HyDERetriever
 from app.services.llm_service import generate
@@ -37,7 +39,7 @@ async def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedC
     mode = _flag(flags, "search_mode", "dense")
     rerank = bool(_flag(flags, "rerank", False))
     hyde = bool(_flag(flags, "hyde", False))
-    enable_crag = bool(_flag(flags, "enable_crag", settings.crag_enabled_by_default))
+    enable_crag = bool(_flag(flags, "crag", settings.crag_enabled_by_default))
 
     retrieve_k = settings.reranker_initial_top_k if rerank else final_top_k
     logger.info(f"final flags: top_k={final_top_k}, search_mode={mode}, enable_rerank={rerank}, enable_hyde={hyde}, enable_crag={enable_crag}")
@@ -61,6 +63,20 @@ async def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedC
         chunks = reranker.rerank(question, chunks, top_k=final_top_k)
     else:
         chunks = chunks[:final_top_k]
+
+     # CRAG: grade chunks + fall back to web search if irrelevant
+    chunks, evaluation, used_web = crag_pipeline(
+        question=question,
+        chunks=chunks,
+        enable_crag=enable_crag,
+    )
+    logger.info(
+        "CRAG | enabled={} score={} label={} used_web={}",
+        enable_crag,
+        evaluation.relevance_score,
+        evaluation.relevance_label,
+        used_web,
+    )    
 
     return chunks
 
