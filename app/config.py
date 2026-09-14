@@ -60,8 +60,8 @@ class Settings(BaseSettings):
     crag_ambiguous_threshold: float = 0.5
     crag_enabled_by_default: bool = True
     reflection_min_score: float = 0.85
-    max_reflection_retries: int = 2
-    self_reflective_enabled_by_default: bool = False
+    max_reflection_retries: int = 5
+    self_reflective_enabled_by_default: bool = True
 
 
     vanna_model: str = "gpt-4o"

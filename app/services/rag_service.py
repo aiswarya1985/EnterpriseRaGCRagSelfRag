@@ -18,6 +18,7 @@ from app.services.crag import crag_pipeline
 from app.services.embedding_service import embed_texts
 from app.services.hyde import HyDERetriever
 from app.services.llm_service import generate
+from app.services.self_reflective import reflect_on_answer, should_regenerate
 from app.services.vector_store import search, hybrid_search, sparse_search
 from app.services.query_cache_service import query_cache
 from app.services.reranking import Reranker
@@ -28,11 +29,6 @@ def _flag(flags: dict | None, key: str, default):
         return default
     return flags.get(key, default)
 
-def _enable_rerank(flags: dict | None) -> bool:
-   if not isinstance(flags, dict):
-     return False
-   return bool(flags.get("enable_rerank", False))
-
 async def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedChunk]:
     logger.info(f"flags: {flags}")
     final_top_k = int(_flag(flags, "top_k", 5))
@@ -40,7 +36,7 @@ async def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedC
     rerank = bool(_flag(flags, "rerank", False))
     hyde = bool(_flag(flags, "hyde", False))
     enable_crag = bool(_flag(flags, "crag", settings.crag_enabled_by_default))
-
+    
     retrieve_k = settings.reranker_initial_top_k if rerank else final_top_k
     logger.info(f"final flags: top_k={final_top_k}, search_mode={mode}, enable_rerank={rerank}, enable_hyde={hyde}, enable_crag={enable_crag}")
     
@@ -64,21 +60,23 @@ async def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedC
     else:
         chunks = chunks[:final_top_k]
 
+    if enable_crag:
      # CRAG: grade chunks + fall back to web search if irrelevant
-    chunks, evaluation, used_web = crag_pipeline(
-        question=question,
-        chunks=chunks,
-        enable_crag=enable_crag,
+        chunks, evaluation, used_web = crag_pipeline(
+            question=question,
+            chunks=chunks,
+            enable_crag=enable_crag,
     )
-    logger.info(
-        "CRAG | enabled={} score={} label={} used_web={}",
-        enable_crag,
-        evaluation.relevance_score,
-        evaluation.relevance_label,
-        used_web,
+        logger.info(
+            "CRAG | enabled={} score={} label={} used_web={}",
+            enable_crag,
+            evaluation.relevance_score,
+            evaluation.relevance_label,
+            used_web,
     )    
 
     return chunks
+
 
 
 def _generate(
@@ -86,18 +84,43 @@ def _generate(
     chunks: list[RetrievedChunk],
     flags: dict | None = None,
 ) -> ChatResponse:
-    enable_self_reflective = bool(_flag(flags, "enable_self_reflective", False))
+    enable_self_reflective = bool(_flag(flags, "srag", False))
 
     spotlighted = build_spotlighted_context(chunks)
     system = build_system_prompt()
 
     def _raw(q: str) -> str:
-        logger.info(f"spotlighted context: {spotlighted}, question: {q}, system prompt: {system}")
         return generate(system, f"{spotlighted}\n\nQuestion: {q}")["text"]
 
     working_q = question
     raw = _raw(working_q)
-    
+
+    # Self-RAG: reflect on the answer; refine the question and retry if weak.
+    iterations = 0
+    last_score: float | None = None
+    final_refined: str | None = None
+    if enable_self_reflective:
+        while True:
+            reflection = reflect_on_answer(
+                question=working_q,
+                answer=raw,
+                context=spotlighted,
+            )
+            last_score = float(reflection.reflection_score)
+            logger.info(
+                "Self-RAG | iteration={} score={} needs_regeneration={}",
+                iterations,
+                last_score,
+                reflection.needs_regeneration,
+            )
+            final_refined = reflection.refined_question or working_q
+            if not should_regenerate(reflection, iterations):
+                break           
+           
+            working_q = final_refined
+            raw = _raw(working_q)
+            iterations += 1
+
     chunk_previews = [
         RetrievedChunkPreview(text=c.text, source=c.source, score=c.score) for c in chunks
     ]
@@ -107,7 +130,10 @@ def _generate(
         confidence=0.7,
         metadata=ResponseMetadata(
             route="rag",
-            retrieved_chunks=chunk_previews,         
+            retrieved_chunks=chunk_previews,
+            reflection_iterations=iterations,
+            reflection_score=last_score,
+            refined_question=final_refined,
         ),
     )
 
