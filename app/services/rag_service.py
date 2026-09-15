@@ -23,11 +23,12 @@ from app.services.vector_store import search, hybrid_search, sparse_search
 from app.services.query_cache_service import query_cache
 from app.services.reranking import Reranker
 
-
+#region flags:
 def _flag(flags: dict | None, key: str, default):
     if not isinstance(flags, dict):
         return default
     return flags.get(key, default)
+#endregion
 
 async def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedChunk]:
     logger.info(f"flags: {flags}")
@@ -76,8 +77,6 @@ async def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedC
     )    
 
     return chunks
-
-
 
 def _generate(
     question: str,
@@ -137,19 +136,14 @@ def _generate(
         ),
     )
 
-
-
 async def run_rag_async(question: str, flags: dict | int | None = None) -> ChatResponse:
     logger.info(f"Running RAG with question: {question}, flags: {flags}")
     chunks = await _retrieve(question, flags=flags if isinstance(flags, dict) else None)
     response = _generate(question, chunks, flags=flags if isinstance(flags, dict) else None)
     return response
 
-
 def run_rag(question: str, flags: dict | int | None = None) -> ChatResponse:
     return asyncio.run(run_rag_async(question, flags))
-
-
 
 def run_rag_with_trace(
     question: str, flags: dict | int | None = None
