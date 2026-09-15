@@ -53,7 +53,6 @@ class PendingSQLBlock(BaseModel):
     query_id: str
     explanation: str = ""
 
-
 class ChatResponse(BaseModel):
     answer: str = Field(..., min_length=0)
     sources: list[str] = Field(default_factory=list)
@@ -76,7 +75,8 @@ class QueryRequest(BaseModel):
     enable_hyde: bool = False
     search_mode: Literal["dense", "sparse", "hybrid"] = "dense"
     enable_crag: bool = True
-    enable_self_reflective: bool = False
+    enable_self_reflective: bool = False,
+    user_id:str=""
     
     @field_validator("question")
     @classmethod
@@ -120,7 +120,3 @@ class ReflectionResult(BaseModel):
     refined_question: str = ""
     reasoning: str = ""
 
-class PendingSQLBlock(BaseModel):
-    sql: str
-    query_id: str
-    explanation: str = ""
