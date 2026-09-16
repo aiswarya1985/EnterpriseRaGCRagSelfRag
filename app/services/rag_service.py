@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
+import concurrent
 from loguru import logger
 from app.services.router_service import classify_intent
 from app.config import settings
@@ -151,7 +152,17 @@ async def run_rag_async(question: str, flags: dict | int | None = None) -> ChatR
 
 #region run_rag
 def run_rag(question: str, flags: dict | int | None = None) -> ChatResponse:
-    return asyncio.run(run_rag_async(question, flags))
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    # If an event loop is already running (e.g., inside LangGraph), run in a separate thread pool
+    if loop and loop.is_running():
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            return pool.submit(lambda: asyncio.run(run_rag_async(question, flags))).result()
+    else:
+        return asyncio.run(run_rag_async(question, flags))
 #endregion
 
 #region run_rag_with_trace

@@ -42,20 +42,24 @@ _DOCUMENT_HINTS = (
 )
 
 def _looks_like_document_question(question: str) -> bool:
-    lowered = question.lower()
-    return any(hint in lowered for hint in _DOCUMENT_HINTS)
+    try:
+     lowered = question.lower()
+     return any(hint in lowered for hint in _DOCUMENT_HINTS)
+    except Exception:
+        logger.exception("_looks_like_document_question failed")
 
 
 def classify_intent(question: str) -> Intent:
-    if _looks_like_document_question(question):
-        query_cache.set_intent(question, "rag")
-        return "rag"
-
-    cached = query_cache.get_intent(question)
-    if cached in ("sql", "rag", "hybrid"):
-        return cached 
-
     try:
+        if _looks_like_document_question(question):
+            query_cache.set_intent(question, "rag")
+            return "rag"
+
+        cached = query_cache.get_intent(question)
+        if cached in ("sql", "rag", "hybrid"):
+            logger.info(f"cache retrieved:{cached}")
+            return cached
+
         response = generate_with_json(
             system_prompt=_INTENT_SYSTEM_PROMPT,
             user_message=question,
@@ -65,12 +69,11 @@ def classify_intent(question: str) -> Intent:
         raw_text = response.get("text", "")
         parsed = json.loads(raw_text)
         intent = parsed.get("intent", "")
+        logger.info(f"response from LLM:{response}")
 
         if intent in ("sql", "rag", "hybrid"):
             query_cache.set_intent(question, intent)
-            return intent  # type: ignore[return-value]
-
-        logger.error("Invalid intent returned by LLM: %s", intent)
+            return intent  # type: ignore[return-value]        
         return "rag"
     except Exception:
         logger.exception("Intent classification failed, falling back to rag")

@@ -6,6 +6,7 @@ from typing import Any
 
 import psycopg
 from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph.errors import GraphInterrupt
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
@@ -16,7 +17,7 @@ from app.services.llm_service import generate
 from app.services.rag_service import run_rag
 from app.services.router_service import classify_intent
 from app.services.sql_service import SQLService
-
+from loguru import logger
 
 sql_service = SQLService()
 
@@ -47,47 +48,60 @@ def _safe_json_dumps(obj: Any, **kwargs: Any) -> str:
 
 def route_intent(state: GraphState) -> dict:
     """LLM-based intent router for sql/rag/hybrid."""
-    intent = classify_intent(state["question"])
-    return {"intent": intent}
-
-
+    try:
+        intent = classify_intent(state["question"])
+        return {"intent": intent}
+    except Exception:
+        logger.exception("exception occured in route_intent:")
+            
 def retrieve_rag(state: GraphState) -> dict:
-    response = run_rag(state["question"], flags=state.get("flags", {}))
-    return {
-        "retrieved_chunks": response.sources,
-        "spotlighted_context": build_spotlighted_context([
-            type("Chunk", (), {"text": s, "source": s, "score": 0.0})()
-            for s in response.sources
-        ]),
-        # "rag_cache_hit": response.cache_hit,
-        # "cache_hits": {"rag_answer": response.cache_hit},
-    }
+    try:
+        response = run_rag(state["question"], flags=state.get("flags", {}))
+        return {
+            "retrieved_chunks": response.sources,
+            "spotlighted_context": build_spotlighted_context([
+                type("Chunk", (), {"text": s, "source": s, "score": 0.0})()
+                for s in response.sources
+            ]),
+            # "rag_cache_hit": response.cache_hit,
+            # "cache_hits": {"rag_answer": response.cache_hit},
+        }
+    except Exception:
+        logger.exception("retrieve_rag rag failed")
 
 
 def generate_sql_node(state: GraphState) -> dict:
-    result = sql_service.generate_sql(state["question"])
-    return {
-        "generated_sql": result["sql"],
-        "sql_explanation": result["explanation"],
-    }
-
+    try:
+        result = sql_service.generate_sql(state["question"])
+        return {
+            "generated_sql": result["sql"],
+            "sql_explanation": result["explanation"],
+        }
+    except Exception:
+            logger.exception("generate_sql_node failed")
+    
 
 
 def request_sql_approval(state: GraphState) -> dict:
-    approval = interrupt({
-        "type": "sql_approval_required",
-        "sql": state["generated_sql"],
-        "explanation": state["sql_explanation"],
-    })
-    return {"sql_approved": approval.get("approved", False)}
+    try:
+        approval = interrupt({
+            "type": "sql_approval_required",
+            "sql": state["generated_sql"],
+            "explanation": state["sql_explanation"],
+        })
+        return {"sql_approved": approval.get("approved", False)}
+    except GraphInterrupt:
+        raise
+    except Exception:
+        logger.exception("request_sql_approval failed")
 
 def execute_sql(state: GraphState) -> dict:
     """Execute approved SQL and store results."""
-    if not state.get("sql_approved"):
-        return {"sql_rows": [], "final_answer": "SQL query was not approved."}
-
-    sql = state.get("generated_sql", "")
     try:
+        if not state.get("sql_approved"):
+            return {"sql_rows": [], "final_answer": "SQL query was not approved."}
+
+        sql = state.get("generated_sql", "")
         rows = sql_service.execute_sql(sql)
         return {"sql_rows": rows}
     except Exception as exc:
@@ -96,6 +110,7 @@ def execute_sql(state: GraphState) -> dict:
 
 
 def generate_answer(state: GraphState) -> dict:
+ try:
     intent = state.get("intent", "rag")
 
     if intent == "sql":
@@ -132,7 +147,8 @@ def generate_answer(state: GraphState) -> dict:
         "reflection_iterations": response.metadata.reflection_iterations,
         "refined_question": response.metadata.refined_question,
     }
-
+ except Exception as exc:
+     logger.exception("generate_answer failed")
 
 def _generate_hybrid_answer(state: GraphState) -> dict:
     rows = state.get("sql_rows", [])

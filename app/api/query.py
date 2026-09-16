@@ -23,37 +23,40 @@ async def query(
     Endpoint to handle query requests. It takes a question and optional flags,
     processes the request using the RAG service, and returns a chat response.
     """
-    logger.info(f"Received query request: {body.question} with flags: top_k={body.top_k}, search_mode={body.search_mode}, enable_rerank={body.enable_rerank}")
-    thread_id = str(uuid.uuid4())
-    config={"configurable": {"thread_id": thread_id}}
+    try:
+        logger.info(f"Received query request: {body.question} with flags: top_k={body.top_k}, search_mode={body.search_mode}, enable_rerank={body.enable_rerank}")
+        thread_id = str(uuid.uuid4())
+        config={"configurable": {"thread_id": thread_id}}
 
-    result = graph.invoke(
-       {
-           "question": body.question,
-           "user_id": body.user_id,
-           "flags":body.model_dump()
+        result = graph.invoke(
+        {
+            "question": body.question,
+            "user_id": body.user_id,
+            "flags":body.model_dump()
 
-       },
-       config=config
-       )
-    if "__interrupt__" in result:
-        intr=result["__interrupt__"][0].value
-        return ChatResponse(
-            answer="",
-            sources=[],
-            confidence=0.0,
-            pending_sql=PendingSQLBlock(
-                 sql=intr["sql"],
-                 query_id=thread_id,
-                 explanation=intr.get("explanation", "")
-
-            )
+        },
+        config=config
         )
-    return ChatResponse(
-      answer=result.get("final_answer", ""),
-      sources=result.get("sources", []),
-      confidence=result.get("confidence", 0.0)
-    )
+        if "__interrupt__" in result:
+            intr=result["__interrupt__"][0].value
+            return ChatResponse(
+                answer="",
+                sources=[],
+                confidence=0.0,
+                pending_sql=PendingSQLBlock(
+                    sql=intr["sql"],
+                    query_id=thread_id,
+                    explanation=intr.get("explanation", "")
+
+                )
+            )
+        return ChatResponse(
+        answer=result.get("final_answer", ""),
+        sources=result.get("sources", []),
+        confidence=result.get("confidence", 0.0)
+        )
+    except Exception:
+        logger.exception("exception occured in the query processing:")
 
 @router.post("/query/sql/execute", response_model=ChatResponse)
 async def execute_sql(
