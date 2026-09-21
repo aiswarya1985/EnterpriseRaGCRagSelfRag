@@ -12,8 +12,9 @@ from app.security.token_budget import check_budget, consume_budget
 
 from app.core.graph import graph
 from app.middleware.auth import User, get_current_user
-from app.models import ChatResponse, QueryRequest, PendingSQLBlock
+from app.models import ChatResponse, QueryRequest, PendingSQLBlock, ResponseMetadata, RetrievedChunkPreview
 
+from loguru import logger
 
 
 router = APIRouter(tags=["query"])
@@ -100,14 +101,26 @@ async def query(
                 explanation=intr.get("explanation", ""),
             ),
         )
-
+    logger.info(f"Result:{result}")
+    metadata_data = ResponseMetadata(
+    route=result.get("intent", "rag"),
+    retrieved_chunks=[
+        RetrievedChunkPreview(**chunk) if isinstance(chunk, dict) else chunk
+        for chunk in result.get("retrieved_chunks", []) or result.get("chunk_previews", [])
+    ],
+    cache_hit=result.get("rag_cache_hit", False),
+    reflection_iterations=result.get("reflection_iterations", 0),
+    reflection_score=result.get("reflection_score"),
+    refined_question=result.get("refined_question"),
+)
     response = ChatResponse(
         answer=result.get("final_answer", ""),
         sources=result.get("sources", []),
         confidence=result.get("confidence", 0.0),
-        cache_hit=result.get("cache_hit", False),
-        metadata=result.get("metadata", {}),
+        cache_hit=result.get("rag_cache_hit", False),
+        metadata=metadata_data
     )
+    logger.info(f"Final response from query: {response.model_dump_json(indent=2)}")
 
     # Layer 6 (content moderation out): redact PII before returning
     out_allowed, redacted, _ = moderate_and_redact(response.answer)

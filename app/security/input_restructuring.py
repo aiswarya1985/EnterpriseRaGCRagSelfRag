@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import tiktoken
 
 from app.config import settings
 
@@ -12,8 +13,7 @@ logger = logging.getLogger(__name__)
 def count_tokens(text: str) -> int:
     """Count tokens using tiktoken if available, otherwise rough word count."""
     try:
-        import tiktoken
-
+       
         enc = tiktoken.get_encoding("cl100k_base")
         return len(enc.encode(text))
     except Exception:

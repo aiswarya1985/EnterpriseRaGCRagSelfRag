@@ -57,14 +57,25 @@ def route_intent(state: GraphState) -> dict:
 def retrieve_rag(state: GraphState) -> dict:
     try:
         response = run_rag(state["question"], flags=state.get("flags", {}))
+        metadata = getattr(response, "metadata", None)
+        raw_chunks = getattr(metadata, "retrieved_chunks", []) if metadata else []
+        retrieved_chunks = [
+            chunk.model_dump() if hasattr(chunk, "model_dump") else dict(chunk)
+            for chunk in raw_chunks
+        ]
+        if not retrieved_chunks:
+            retrieved_chunks = [
+                {"text": s, "source": s, "score": 0.0} for s in response.sources
+            ]
         return {
-            "retrieved_chunks": response.sources,
+            "retrieved_chunks": retrieved_chunks,
             "spotlighted_context": build_spotlighted_context([
-                type("Chunk", (), {"text": s, "source": s, "score": 0.0})()
-                for s in response.sources
+                type("Chunk", (), {"text": c["text"], "source": c["source"], "score": c.get("score", 0.0)})()
+                for c in retrieved_chunks
             ]),
-            # "rag_cache_hit": response.cache_hit,
-            # "cache_hits": {"rag_answer": response.cache_hit},
+            "rag_cache_hit": response.cache_hit,
+            "cache_hits": {"rag_answer": response.cache_hit},
+            "metadata": metadata.model_dump() if metadata else {},
         }
     except Exception:
         logger.exception("retrieve_rag rag failed")
@@ -120,34 +131,49 @@ def generate_answer(state: GraphState) -> dict:
                 "final_answer": state.get("final_answer", "No results."),
                 "sources": ["database query"],
                 "confidence": 0.9,
+                "metadata": {"route": "sql", "retrieved_chunks": [], "cache_hit": False},
             }
         answer = f"Query results:\n```\n{_safe_json_dumps(rows, indent=2)}\n```"
         return {
             "final_answer": answer,
             "sources": ["database query"],
             "confidence": 0.9,
+            "metadata": {"route": "sql", "retrieved_chunks": [], "cache_hit": False},
         }
 
     if intent == "hybrid":
         return _generate_hybrid_answer(state)
 
     response = run_rag(state["question"], flags=state.get("flags", {}))
+    metadata = getattr(response, "metadata", None)
     chunk_previews = [
-        chunk.model_dump() for chunk in response.metadata.retrieved_chunks
+        chunk.model_dump() if hasattr(chunk, "model_dump") else dict(chunk)
+        for chunk in getattr(metadata, "retrieved_chunks", [])
     ]
+    if not chunk_previews and getattr(response, "sources", None):
+        chunk_previews = [
+            {"text": s, "source": s, "score": 0.0} for s in response.sources
+        ]
+
+    metadata_payload = metadata.model_dump() if metadata else {}
+    logger.info(f"Final response from generate answer:{response}")
+    logger.info(f"Final response(chunk previews) from generate answer:{chunk_previews}")
+    logger.info(f"Final response(meta data) from generate answer:{metadata_payload}")
+    logger.info(f"Final response(cache hit) from generate answer:{response.cache_hit}")
 
     return {
         "final_answer": response.answer,
         "sources": response.sources,
         "confidence": response.confidence,
         "cache_hit": response.cache_hit,
+        "rag_cache_hit": response.cache_hit,
+        "retrieved_chunks": chunk_previews,
         "chunk_previews": chunk_previews,
-        "metadata": response.metadata.model_dump(),
-        # Surface Self-RAG telemetry so the API can include it in the response.
-        "reflection_iterations": response.metadata.reflection_iterations,
-        "refined_question": response.metadata.refined_question,
+        "metadata": metadata_payload,
+        "reflection_iterations": getattr(metadata, "reflection_iterations", 0),
+        "refined_question": getattr(metadata, "refined_question", None),
     }
- except Exception as exc:
+ except Exception:
      logger.exception("generate_answer failed")
 
 def _generate_hybrid_answer(state: GraphState) -> dict:

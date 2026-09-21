@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-
 import concurrent
+
 from loguru import logger
-from app.services.router_service import classify_intent
+
 from app.config import settings
 from app.models import (
     ChatResponse,
@@ -15,22 +15,33 @@ from app.models import (
 from app.security.spotlighting import build_spotlighted_context
 from app.security.system_prompt import build_system_prompt
 from app.services.crag import crag_pipeline
-from app.services.crag import crag_pipeline
 from app.services.embedding_service import embed_texts
 from app.services.hyde import HyDERetriever
 from app.services.llm_service import generate
+from app.services.query_cache_service import query_cache
+from app.services.reranking import Reranker
+from app.services.router_service import classify_intent
 from app.services.self_reflective import reflect_on_answer, should_regenerate
 from app.services.sql_service import SQLService
 from app.services.vector_store import search, hybrid_search, sparse_search
-from app.services.query_cache_service import query_cache
-from app.services.reranking import Reranker
+
 
 #region flags:
 def _flag(flags: dict | None, key: str, default):
     if not isinstance(flags, dict):
         return default
     return flags.get(key, default)
+
+
+def _mark_cache_hit(response: ChatResponse, is_hit: bool) -> ChatResponse:
+    logger.info(f"cache hit:{is_hit}")
+    response.cache_hit = is_hit
+    if response.metadata is not None:
+        # Re-assigns the updated metadata sub-model back to response
+        response.metadata = response.metadata.model_copy(update={"cache_hit": is_hit})
+    return response
 #endregion
+
 
 #region retrieval and generation
 async def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedChunk]:
@@ -39,11 +50,14 @@ async def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedC
     mode = _flag(flags, "search_mode", "dense")
     rerank = bool(_flag(flags, "rerank", False))
     hyde = bool(_flag(flags, "hyde", False))
-    enable_crag = bool(_flag(flags, "crag", settings.crag_enabled_by_default))
-    
+    enable_crag = bool(_flag(flags, "crag", False))
+
     retrieve_k = settings.reranker_initial_top_k if rerank else final_top_k
-    logger.info(f"final flags: top_k={final_top_k}, search_mode={mode}, enable_rerank={rerank}, enable_hyde={hyde}, enable_crag={enable_crag}")
-    
+    logger.info(
+        f"final flags: top_k={final_top_k}, search_mode={mode}, "
+        f"enable_rerank={rerank}, enable_hyde={hyde}, enable_crag={enable_crag}"
+    )
+
     if mode == "sparse":
         chunks = sparse_search(question, top_k=retrieve_k)
     elif mode == "hybrid" and not hyde:
@@ -65,22 +79,23 @@ async def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedC
         chunks = chunks[:final_top_k]
 
     if enable_crag:
-     # CRAG: grade chunks + fall back to web search if irrelevant
+        # CRAG: grade chunks + fall back to web search if irrelevant
         chunks, evaluation, used_web = crag_pipeline(
             question=question,
             chunks=chunks,
             enable_crag=enable_crag,
-    )
+        )
         logger.info(
             "CRAG | enabled={} score={} label={} used_web={}",
             enable_crag,
             evaluation.relevance_score,
             evaluation.relevance_label,
             used_web,
-    )    
+        )
 
     return chunks
 #endregion
+
 
 #region generation
 def _generate(
@@ -119,8 +134,8 @@ def _generate(
             )
             final_refined = reflection.refined_question or working_q
             if not should_regenerate(reflection, iterations):
-                break           
-           
+                break
+
             working_q = final_refined
             raw = _raw(working_q)
             iterations += 1
@@ -128,6 +143,7 @@ def _generate(
     chunk_previews = [
         RetrievedChunkPreview(text=c.text, source=c.source, score=c.score) for c in chunks
     ]
+
     return ChatResponse(
         answer=raw,
         sources=list({c.source for c in chunks}),
@@ -142,43 +158,20 @@ def _generate(
     )
 #endregion
 
+
 #region run_rag functions
 async def run_rag_async(question: str, flags: dict | int | None = None) -> ChatResponse:
     logger.info(f"Running RAG with question: {question}, flags: {flags}")
-    chunks = await _retrieve(question, flags=flags if isinstance(flags, dict) else None)
-    response = _generate(question, chunks, flags=flags if isinstance(flags, dict) else None)
-    return response
-#endregion
-
-#region run_rag
-def run_rag(question: str, flags: dict | int | None = None) -> ChatResponse:
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-
-    # If an event loop is already running (e.g., inside LangGraph), run in a separate thread pool
-    if loop and loop.is_running():
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            return pool.submit(lambda: asyncio.run(run_rag_async(question, flags))).result()
-    else:
-        return asyncio.run(run_rag_async(question, flags))
-#endregion
-
-#region run_rag_with_trace
-def run_rag_with_trace(
-    question: str, flags: dict | int | None = None
-) -> tuple[ChatResponse, list[RetrievedChunk]]:
 
     cache_ctx = (
         _cache_context(flags) if isinstance(flags, dict) else _cache_context(None)
     )
-    cached = query_cache.get_rag_answer(question, cache_ctx)
+    cached = query_cache.get_rag_answer(question, cache_ctx) 
+
     if cached is not None:
-        resp = ChatResponse(**cached)
-        resp.cache_hit = True  # set on the schema (added in L8)
-        resp.metadata.cache_hit = True
-        return resp
+        resp = ChatResponse(**cached)  
+        cached_response = _mark_cache_hit(resp, True)     
+        return cached_response
 
     intent = classify_intent(question)
     logger.info(
@@ -191,20 +184,91 @@ def run_rag_with_trace(
         _flag(flags, "enable_self_reflective", False),
         int(_flag(flags, "top_k", 5)),
     )
+
     if intent == "sql":
         response = _run_sql_inline(question)
     elif intent == "hybrid":
         response, _ = _run_hybrid_inline(
             question, flags if isinstance(flags, dict) else None
         )
-    else:    
-     chunks = asyncio.run(_retrieve(question, flags=flags if isinstance(flags, dict) else None))
-     response = _generate(question, chunks, flags=flags if isinstance(flags, dict) else None)
+    else:
+        chunks = await _retrieve(
+            question,
+            flags=flags if isinstance(flags, dict) else None,
+        )
+        response = _generate(
+            question,
+            chunks,
+            flags=flags if isinstance(flags, dict) else None,
+        )
 
+    response = _mark_cache_hit(response, False)
     query_cache.set_rag_answer(question, response.model_dump(), cache_ctx)
     return response
-  
 #endregion
+
+
+#region run_rag
+def run_rag(question: str, flags: dict | int | None = None) -> ChatResponse:
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            return pool.submit(lambda: asyncio.run(run_rag_async(question, flags))).result()
+    else:
+        return asyncio.run(run_rag_async(question, flags))
+#endregion
+
+
+#region run_rag_with_trace
+# def run_rag_with_trace(
+#     question: str, flags: dict | int | None = None
+# ) -> tuple[ChatResponse, list[RetrievedChunk]]:
+
+#     cache_ctx = (
+#         _cache_context(flags) if isinstance(flags, dict) else _cache_context(None)
+#     )
+#     cached = query_cache.get_rag_answer(question, cache_ctx)
+#     if cached is not None:
+#         resp = ChatResponse(**cached)
+#         return _mark_cache_hit(resp, True)
+
+#     intent = classify_intent(question)
+#     logger.info(
+#         "L8 query | intent={} mode={} rerank={} hyde={} crag={} self_rag={} top_k={}",
+#         intent,
+#         _flag(flags, "search_mode", "dense"),
+#         _flag(flags, "enable_rerank", False),
+#         _flag(flags, "enable_hyde", False),
+#         _flag(flags, "enable_crag", settings.crag_enabled_by_default),
+#         _flag(flags, "enable_self_reflective", False),
+#         int(_flag(flags, "top_k", 5)),
+#     )
+
+#     if intent == "sql":
+#         response = _run_sql_inline(question)
+#     elif intent == "hybrid":
+#         response, _ = _run_hybrid_inline(
+#             question, flags if isinstance(flags, dict) else None
+#         )
+#     else:
+#         chunks = asyncio.run(
+#             _retrieve(question, flags=flags if isinstance(flags, dict) else None)
+#         )
+#         response = _generate(
+#             question,
+#             chunks,
+#             flags=flags if isinstance(flags, dict) else None,
+#         )
+
+#     response = _mark_cache_hit(response, False)
+#     query_cache.set_rag_answer(question, response.model_dump(), cache_ctx)
+#     return response
+#endregion
+
 
 #region run_sql_inline
 def _run_sql_inline(question: str) -> ChatResponse:
@@ -219,7 +283,7 @@ def _run_sql_inline(question: str) -> ChatResponse:
             answer = "No results."
             row_chunks: list[RetrievedChunkPreview] = []
         else:
-            answer = f"Query results:\n```\n{_json.dumps(rows, indent=2, default=str)}\n```"
+            answer = f"Query results:\n```\n{_json.dumps(rows, indent=2, default=str)}\n```\n"
             row_chunks = [
                 RetrievedChunkPreview(
                     text=_json.dumps(row, default=str),
@@ -228,6 +292,7 @@ def _run_sql_inline(question: str) -> ChatResponse:
                 )
                 for row in rows
             ]
+
         return ChatResponse(
             answer=answer,
             sources=["query_results"],
@@ -243,6 +308,7 @@ def _run_sql_inline(question: str) -> ChatResponse:
             metadata=ResponseMetadata(route="sql", retrieved_chunks=[]),
         )
 #endregion
+
 
 #region run_hybrid_inline
 def _run_hybrid_inline(
@@ -268,10 +334,12 @@ def _run_hybrid_inline(
     )
 
     sql_section = ""
-
     if rows:
         import json as _json
-        sql_section = f"\n=== Database Results ===\n```\n{_json.dumps(rows, indent=2, default=str)}\n```\n"
+        sql_section = (
+            f"\n=== Database Results ===\n```\n{_json.dumps(rows, indent=2, default=str)}\n```\n"
+        )
+
     user_msg = f"{sql_section}{spotlighted}\n\nQuestion: {question}"
     raw = generate(system, user_msg)["text"]
 
@@ -288,8 +356,8 @@ def _run_hybrid_inline(
         ),
     )
     return response, chunks
-
 #endregion
+
 
 #region _cache_context
 def _cache_context(flags: dict | None) -> dict:
@@ -303,4 +371,5 @@ def _cache_context(flags: dict | None) -> dict:
     }
 #endregion
 
-run_rag_with_trace_no_cache = run_rag_with_trace
+
+# run_rag_with_trace_no_cache = run_rag_with_trace
