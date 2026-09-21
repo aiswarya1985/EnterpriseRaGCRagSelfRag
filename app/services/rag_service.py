@@ -50,7 +50,7 @@ async def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedC
     mode = _flag(flags, "search_mode", "dense")
     rerank = bool(_flag(flags, "rerank", False))
     hyde = bool(_flag(flags, "hyde", False))
-    enable_crag = bool(_flag(flags, "crag", False))
+    enable_crag = bool(_flag(flags, "enable_crag", False))
 
     retrieve_k = settings.reranker_initial_top_k if rerank else final_top_k
     logger.info(
