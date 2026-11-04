@@ -8,7 +8,6 @@ from app.config import settings
 
 _redis_client: Redis | None = None
 
-from loguru import logger
 
 def get_redis_client() -> Redis:
     global _redis_client
@@ -31,9 +30,7 @@ class TokenBudget:
     def check_budget(self, user_id: str, estimated_tokens: int) -> tuple[bool, int]:
         client = get_redis_client()
         key = self._key(user_id)
-        logger.info(f"checking budget for user {user_id} with key {key} and estimated tokens {estimated_tokens}")
         used_str = client.get(key)
-        logger.info(f"used tokens for user {user_id}: {used_str}")
         used = int(used_str) if used_str is not None else 0
         remaining = self.max_tokens - used
         ok = estimated_tokens <= remaining

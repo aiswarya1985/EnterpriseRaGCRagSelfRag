@@ -1,8 +1,5 @@
 import argparse
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
-os.environ["ACCELERATE_USE_CPU"] = "1"
-os.environ["FORCE_CPU"] = "1"  # Optional: used by some libraries
 import random
 import time
 from pathlib import Path
@@ -27,10 +24,7 @@ SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".html", ".htm", ".txt", ".md"}
 SAMPLE_SEED = 42
 
 
-'''
-p = Path("D:/demo/true_data/file1.txt")
-print(p)          # D:/demo/true_data/file1.txt
-print(p.name)     # file1.txt'''
+
 def _collect_files(subdir: str) -> list[Path]:
     root = Path(DOCS_DIR) / subdir
     if not root.exists():
@@ -41,12 +35,7 @@ def _collect_files(subdir: str) -> list[Path]:
         and p.suffix.lower() in SUPPORTED_EXTENSIONS
         and p.name != ".gitkeep"
     )
-'''
-Get all docs from true data
-Get all docs from noisy data
-option to process all files or a random sample size say 2 or 5 or 10
-It picks up random files
-'''
+
 def _select_corpus(noise_sample_size: int | str) -> tuple[list[Path], list[Path]]:
     true_files = _collect_files("true_data")
     all_noisy = _collect_files("noisy_data")
@@ -76,14 +65,7 @@ def _select_corpus(noise_sample_size: int | str) -> tuple[list[Path], list[Path]
             noisy_files.sort()
     return true_files, noisy_files
 
-''' Get the docs from the folder
-process true files one by one
-[1/5] start true file1
-[2/5] start true file2
-noisy file index start after true file index
-[3/5] start noisy fileA
-[4/5] start noisy fileB
-[5/5] start noisy fileC'''
+
 def seed_docs(noise_sample_size: int | str = 150) -> dict:
     from app.models import RetrievedChunk
     from app.services.document_processor import DocumentProcessor
@@ -130,28 +112,7 @@ def seed_docs(noise_sample_size: int | str = 150) -> dict:
 
     return counters
 
-'''chunks_meta = [
-    {
-        "text": "Enterprise RAG System Documentation\n\nThis document outlines the architecture and implementation of our advanced Retrieval-Augmented Generation system designed for enterprise applications.",
-        "source": "d:/AgenticAI_Projects/EnterpriseRAG_MentorYashPatil/seed/docs/true_data/enterprise_rag.pdf"
-    },
-    {
-        "text": "1. Introduction\n\nRetrieval-Augmented Generation (RAG) combines the power of large language models with information retrieval systems. It allows the model to access external knowledge bases and provide more accurate, contextual responses.",
-        "source": "d:/AgenticAI_Projects/EnterpriseRAG_MentorYashPatil/seed/docs/true_data/enterprise_rag.pdf"
-    },
-    {
-        "text": "2. System Architecture\n\nThe system consists of three main components:\n- Document Processor: Extracts and chunks documents using Docling\n- Embedding Service: Converts text into vector embeddings\n- Vector Store: Stores and retrieves embeddings efficiently",
-        "source": "d:/AgenticAI_Projects/EnterpriseRAG_MentorYashPatil/seed/docs/true_data/enterprise_rag.pdf"
-    },
-    {
-        "text": "2.1 Document Processing Pipeline\n\nDocuments are processed through multiple stages: parsing, chunking, cleaning, and metadata extraction. The Docling library handles PDF, DOCX, and HTML formats seamlessly.",
-        "source": "d:/AgenticAI_Projects/EnterpriseRAG_MentorYashPatil/seed/docs/true_data/enterprise_rag.pdf"
-    },
-    {
-        "text": "3. Implementation Details\n\nThe embedding service uses state-of-the-art transformer models to generate high-quality vector representations. These embeddings are then stored in a PostgreSQL vector database for efficient similarity search.",
-        "source": "d:/AgenticAI_Projects/EnterpriseRAG_MentorYashPatil/seed/docs/true_data/enterprise_rag.pdf"
-    }
-]'''
+
 def _ingest_one(processor, src: Path, idx: int, total: int, counters: dict,
                 embed_texts_fn, upsert_chunks_fn, RetrievedChunk) -> None:
     label = "true" if "true_data" in str(src) else "noisy"
@@ -213,7 +174,7 @@ def main() -> None:
         help="Run migrations + users only; skip vector-store ingestion",
     )
     parser.add_argument(
-        "--noise-sample", default="5",
+        "--noise-sample", default="150",
         help="Number of noisy docs to sample (default 150). Use 0 or 'all'.",
     )
     args = parser.parse_args()

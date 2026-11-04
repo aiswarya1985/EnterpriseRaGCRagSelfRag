@@ -6,37 +6,13 @@ from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions
 from docling.document_converter import DocumentConverter, PdfFormatOption
 from loguru import logger
-'''1. 
-Initialization (__init__)
-PdfPipelineOptions(...): Sets up PDF parsing to use Apple Silicon GPU (AcceleratorDevice.MPS) with 8 CPU threads for fast OCR/layout extraction.
-DocumentConverter: Initializes the PDF converter engine.
-HybridChunker: Loads a chunking strategy that splits documents intelligently using both layout (headers, paragraphs) and token length constraints.
-2 chunks for simple doc
-[
-    {
-        "text": "Docling is an open-source library for document processing.",
-        "source": "sample.pdf",
-        "page_number": 1
-    },
-    {
-        "text": "It supports OCR, PDF layout analysis, and chunking.",
-        "source": "sample.pdf",
-        "page_number": 2
-    }
-]
-'''
+
 class DocumentProcessor:
     def __init__(self):
         pipeline_options = PdfPipelineOptions()
         pipeline_options.accelerator_options = AcceleratorOptions(
-            num_threads=8, device=AcceleratorDevice.CPU
+            num_threads=8, device=AcceleratorDevice.MPS
         )
-        # 2. Disable OCR if your PDFs already have selectable text
-        pipeline_options.do_ocr = False
-
-      # 3. Disable complex table extraction if table structures aren't essential
-        pipeline_options.do_table_structure = False
-        
         self.converter = DocumentConverter(
             format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
         )

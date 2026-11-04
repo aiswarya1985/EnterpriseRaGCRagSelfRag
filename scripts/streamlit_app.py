@@ -305,11 +305,6 @@ def _request(
     retry_auth: bool = True,
 ) -> tuple[int, Any]:
     url = f"{base_url.rstrip('/')}{path}"
-
-    print("=" * 50)
-    print(f"STREAMLIT IS SENDING REQUEST TO: {url}")
-    print("=" * 50)
-    
     headers = _api_headers(token)
     if files is not None:
         headers.pop("Content-Type", None)

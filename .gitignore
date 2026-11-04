@@ -60,3 +60,7 @@ commands.md
 terraform/.terraform/ 
 
 gcp_commands.txt
+
+.env
+.env.*
+*.bak

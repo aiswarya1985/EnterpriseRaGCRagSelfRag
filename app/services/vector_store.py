@@ -8,41 +8,7 @@ from qdrant_client.models import Distance, PointStruct, VectorParams
 from app.config import settings
 from app.models import RetrievedChunk
 
-'''
-chunk = RetrievedChunk(text="Docling is an open-source library for document processing.", source="sample.pdf")
-embedding = [0.012, -0.045, 0.078, ...]  # 1536 numbers long
-📊 QDRANT DATABASE
-┌────────────────────────────────────────────────────────┐
-│ ID: "a1b2-c3d4"                                        │
-│ Vector: [0.012, -0.045, 0.078, ...]                    │
-│ Payload: {                                             │
-│   "text": "Docling is an open-source library...",     │
-│   "source": "sample.pdf"                               │
-│ }                                                      │
-└──────────────────────
-Step 2: Dense Search (search)You search for conceptual meaning: "What tools exist for reading PDFs?"You convert that query into an embedding vector query_embedding.You run search(query_embedding, top_k=1).Qdrant compares the angle between vectors (Cosine Distance).Even though the query didn't mention "Docling", the vectors are close mathematically!Return Output:Python[
-    RetrievedChunk(
-        text="Docling is an open-source library for document processing.",
-        source="sample.pdf",
-        score=0.88  # High similarity score!
-    )
-]
-Step 3: Sparse Search (sparse_search)You search for exact keywords: "open-source library"_build_sparse_index() downloads the text payload from Qdrant and builds a keyword index (TF-IDF/BM25).It counts matching words.It finds exact word matches for "open-source" and "library".Return Output:Python[
-    RetrievedChunk(
-        text="Docling is an open-source library for document processing.",
-        source="sample.pdf",
-        score=0.95  # Exact word match!
-    )
-]
-Step 4: Hybrid Search (hybrid_search)
-What if someone searches for 
-"Docling PDF features"?Dense Search finds 
-context match $\rightarrow$ 
-Ranks Docling as #1Sparse Search finds 
-exact keyword match for 
-"Docling" $\rightarrow$ Ranks Docling as #1fuse_rrf(...) 
-combines both ranks ($1 + 1$) to give it a top combined score and returns it as the definitive answer!
-'''
+
 
 VECTOR_SIZE = 1536
 

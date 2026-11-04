@@ -23,8 +23,7 @@ class GraphState(TypedDict):
     spotlighted_context: str | None
     crag_evaluation: CRAGEvaluation | None
     web_results: list[RetrievedChunk]
-    rag_cache_hit: bool
-
+    
     raw_answer: str | None
     reflection: ReflectionResult | None
     reflection_iterations: int
@@ -37,3 +36,6 @@ class GraphState(TypedDict):
 
     cache_hits: dict[str, bool]
     cost_saved_usd: float
+    metadata: dict
+    cache_hit: bool
+

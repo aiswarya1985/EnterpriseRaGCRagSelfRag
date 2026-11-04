@@ -2,26 +2,11 @@ from openai import OpenAI
 
 from app.config import settings
 from app.services.query_cache_service import query_cache
-from loguru import logger
 
 
 openai_client = OpenAI(api_key=settings.openai_api_key)
-'''texts = ["apple", "hello", "banana", "world"]
-results = [None, None, None, None]  # 4 slots matching 4 input texts
-miss_indices = []
-miss_texts = []
-assume apple and banana already in cache
-miss_indices= [1, 3]
-miss_texts=["hello", "world"]
-OPEN AI respond with 
-response.data[0] = vector_for_hello
-response.data[1] = vector_for_world 
-but we need to paste at original index
-for loop iterates through and get the response and paste the
-vector at original index
-'''
+
 def embed_texts(texts: list[str], model: str | None = None) -> list[list[float]]:
- try:
     if not texts:
         return []
     if model is None:
@@ -49,7 +34,4 @@ def embed_texts(texts: list[str], model: str | None = None) -> list[list[float]]
             query_cache.set_embedding(miss_texts[idx_in_misses], vector)
 
     return [r for r in results if r is not None]
- except Exception as exc:
-        logger.error(f"Error in embed_texts: {type(exc).__name__} - {exc}")
-        raise
 
