@@ -21,3 +21,20 @@
 }
 ```
 2026-11-04 17:18:38.708 | INFO     | app.api.query:query:128 - consumed 1008 tokens from user agent@demo.local's budget
+2026-11-04 18:59:44.921 | INFO     | app.api.query:query:48 - User agent@demo.local is allowed to make the request.
+2026-11-04 18:59:45.684 | INFO     | app.api.query:query:52 - User agent@demo.local has 97983 tokens remaining today.
+2026-11-04 18:59:45.684 | INFO     | app.api.query:query:61 - User agent@demo.local has enough budget for the request.
+2026-11-04 18:59:45.684 | INFO     | app.api.query:query:64 - User agent@demo.local input restructured using method: original.
+2026-11-04 18:59:59.198 | INFO     | app.api.query:query:69 - User agent@demo.local input passed LLM-Guard scan: None.
+2026-11-04 19:00:50.658 | INFO     | app.api.query:query:74 - User agent@demo.local input passed content moderation: None.
+2026-11-04 19:00:59.432 | INFO     | app.services.rag_service:run_rag:248 - L8 query | intent=rag mode=dense rerank=False hyde=False crag=False self_rag=False top_k=5
+2026-11-04 19:01:03.617 | INFO     | app.services.rag_service:_retrieve:73 - CRAG | enabled=False score=1.0 label=skipped used_web=False
+2026-11-04 19:01:06.776 | INFO     | app.services.rag_service:_generate:128 - L9 validation OK | confidence=0.9 sources=['concepts__configuration__secret.txt']
+2026-11-04 19:01:08.529 | INFO     | app.api.query:query:124 - User agent@demo.local consumed 1006 tokens for the request.
+2026-11-04 19:04:45.214 | INFO     | app.api.query:query:48 - User agent@demo.local is allowed to make the request.
+2026-11-04 19:04:45.288 | INFO     | app.api.query:query:52 - User agent@demo.local has 96977 tokens remaining today.
+2026-11-04 19:04:45.288 | INFO     | app.api.query:query:61 - User agent@demo.local has enough budget for the request.
+2026-11-04 19:04:45.288 | INFO     | app.api.query:query:64 - User agent@demo.local input restructured using method: original.
+2026-11-04 19:04:46.018 | INFO     | app.api.query:query:69 - User agent@demo.local input passed LLM-Guard scan: None.
+2026-11-04 19:04:46.753 | INFO     | app.api.query:query:74 - User agent@demo.local input passed content moderation: None.
+2026-11-04 19:04:48.479 | INFO     | app.api.query:query:124 - User agent@demo.local consumed 1006 tokens for the request.

@@ -15,6 +15,7 @@ from app.middleware.auth import User, get_current_user
 from app.models import ChatResponse, QueryRequest, PendingSQLBlock
 
 
+from loguru import logger
 
 router = APIRouter(tags=["query"])
 
@@ -35,6 +36,7 @@ async def query(
     user: User = Depends(get_current_user),
 ) -> ChatResponse:
     # Layer 3: per-user sliding-window rate limit
+    logger.info
     allowed, _, _ = is_allowed_user(
         user.username,
         limit=settings.rate_limit_requests,
@@ -43,9 +45,11 @@ async def query(
     if not allowed:
         raise HTTPException(status_code=429, detail="Rate limit exceeded")
 
+    logger.info(f"User {user.username} is allowed to make the request.")
     # Layer 3 (token budget): per-user per-day
     estimated = _estimate_tokens(body.question)
     ok, remaining = check_budget(user.username, estimated)
+    logger.info(f"User {user.username} has {remaining} tokens remaining today.")
     if not ok:
         raise HTTPException(
             status_code=429,
@@ -54,20 +58,20 @@ async def query(
                 f"this request estimated to use {estimated}."
             ),
         )
-
+    logger.info(f"User {user.username} has enough budget for the request.")
     # Layer 1 (input restructuring): truncate/summarize if too long
     restructured, _method = restructure_input(body.question)
-
+    logger.info(f"User {user.username} input restructured using method: {_method}.")
     # Layer 2 (LLM-Guard input scan): injection / ban-topic / toxicity
     guard_allowed, guard_reason = check_input_safe(restructured)
     if not guard_allowed:
         raise HTTPException(status_code=400, detail=f"injection_blocked: {guard_reason}")
-
+    logger.info(f"User {user.username} input passed LLM-Guard scan: {guard_reason}.")
     # Layer 4 (content moderation in): PII redaction + toxicity
     mod_allowed, moderated_in, mod_reason = moderate_and_redact(restructured)
     if not mod_allowed:
         raise HTTPException(status_code=400, detail=f"content_blocked: {mod_reason}")
-
+    logger.info(f"User {user.username} input passed content moderation: {mod_reason}.")
     flags = {
         "top_k": body.top_k,
         "search_mode": body.search_mode,
@@ -117,6 +121,7 @@ async def query(
 
     # Consume the budget (only when the call actually succeeded)
     consume_budget(user.username, estimated)
+    logger.info(f"User {user.username} consumed {estimated} tokens for the request.")
 
     return response
 

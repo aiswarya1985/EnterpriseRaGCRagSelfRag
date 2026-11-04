@@ -1042,12 +1042,11 @@ def _eval_dashboard_section() -> None:
     n_skipped = len(latest_data.get("skipped", []))
 
     m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric("Faithfulness", f"{agg.get('faithfulness', 0):.2f}")
-    m2.metric("Ctx Precision", f"{agg.get('context_precision', 0):.2f}")
-    m3.metric("Ctx Recall", f"{agg.get('context_recall', 0):.2f}")
-    m4.metric("Ans Relevancy", f"{agg.get('answer_relevancy', 0):.2f}")
-    m5.metric("Scored / Skipped", f"{n_scored} / {n_skipped}")
-
+    m1.metric("Faithfulness", f"{(agg.get('faithfulness') or 0):.2f}")
+    m2.metric("Ctx Precision", f"{(agg.get('context_precision') or 0):.2f}")
+    m3.metric("Ctx Recall", f"{(agg.get('context_recall') or 0):.2f}")
+    m4.metric("Ans Relevancy", f"{(agg.get('answer_relevancy') or 0):.2f}")
+ 
     # If comparing with a previous run, show the deltas
     if prev_data:
         prev_agg = prev_data.get("aggregate") or {}

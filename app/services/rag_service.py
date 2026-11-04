@@ -14,7 +14,8 @@ from app.security.system_prompt import build_system_prompt
 from app.services.crag import crag_pipeline
 from app.services.embedding_service import embed_texts
 from app.services.reranking import Reranker
-from app.services.llm_service import generate
+from app.services.llm_service import generate, generate_with_json
+from app.security.output_validator import validate_with_retry
 from app.services.vector_store import search, hybrid_search, sparse_search
 from app.services.self_reflective import reflect_on_answer, should_regenerate
 from app.services.hyde import HyDERetriever
@@ -91,8 +92,9 @@ def _generate(
     system = build_system_prompt()
 
     def _raw(q: str) -> str:
-        return generate(system, f"{spotlighted}\n\nQuestion: {q}")["text"]
-
+     return generate_with_json(
+            system, f"{spotlighted}\n\nQuestion: {q}", model=settings.llm_model_answer
+        )["text"]
     working_q = question
     raw = _raw(working_q)
 
@@ -115,13 +117,28 @@ def _generate(
             raw = _raw(working_q)
             iterations += 1
 
+    def _fix(prompt: str, _err: str) -> str:
+        return generate_with_json(system, prompt, model=settings.llm_model_answer)["text"]
+
+    try:
+        validated = validate_with_retry(raw, llm_fn=_fix)
+        answer_text = validated.answer
+        answer_sources = validated.sources
+        answer_confidence = validated.confidence
+        logger.info(f"L9 validation OK | confidence={answer_confidence} sources={answer_sources}")
+    except Exception as exc:
+        logger.warning(f"L9 validation failed, using raw text: {exc}")
+        answer_text = raw
+        answer_sources = list({c.source for c in chunks})
+        answer_confidence = 0.7        
+
     chunk_previews = [
         RetrievedChunkPreview(text=c.text, source=c.source, score=c.score) for c in chunks
     ]
     return ChatResponse(
-        answer=raw,
-        sources=list({c.source for c in chunks}),
-        confidence=0.7,
+        answer=answer_text,
+        sources=answer_sources,
+        confidence=answer_confidence,
         metadata=ResponseMetadata(
             route="rag",
             retrieved_chunks=chunk_previews,
