@@ -1,0 +1,78 @@
+# EnterpriseRAG – Local Learning Plan
+
+## How a question flows
+- The router (`classify_intent`) sends each question one of three ways: **rag**, **sql** or **hybrid**.
+- **RAG path:** retrieve chunks (dense, sparse, hybrid or HyDE), optionally rerank, run CRAG, then generate the answer, with an optional Self-RAG loop.
+- **SQL path:** generate SQL, wait for human approval, run it, return the rows.
+- **Hybrid path:** runs both and lets the LLM merge them into one answer.
+- The two key functions are `_retrieve` and `_generate` in `app/services/rag_service.py`.
+
+## Phase 0 – Setup (one time)
+- Install: `uv python pin 3.12; uv venv --python 3.12; uv sync --extra dev`
+- Check `.env` has OPENAI_API_KEY, JWT_SECRET, DATABASE_URL and QDRANT_URL. Upstash and Tavily keys are already set.
+- Start only the databases: `docker compose up -d postgres qdrant`
+- In VS Code, pick the interpreter `.venv\Scripts\python.exe`.
+- Make sure the Python Debugger extension is installed.
+- Launch configs are ready in `.vscode/launch.json`.
+
+## Phase 1 – Ingesting documents
+- Breakpoints:
+  - `scripts/seed_db.py` → `_ingest_one`
+  - `app/services/document_processor.py` → `process_document`
+  - `app/services/embedding_service.py` → `embed_texts`
+  - `app/services/vector_store.py` → `upsert_chunks`
+- Run the **"Seed DB + Ingest docs"** config.
+- What happens: SQL migrations run, demo users are created, then each document is parsed (Docling), chunked (HybridChunker), embedded (OpenAI, 1536 dimensions) and stored in Qdrant.
+- The first run downloads Docling's models, so it's slow.
+- If you get an MPS error, change `AcceleratorDevice.MPS` to `AcceleratorDevice.AUTO` in `document_processor.py`.
+- Check the stored chunks at http://localhost:6333/dashboard, in the `documents` collection.
+
+## Phase 2 – Basic (dense) RAG
+- In `debug_rag.py`, set `search_mode="dense"` and every other flag to False.
+- Breakpoints: `_retrieve` in `rag_service.py`, `search` in `vector_store.py`.
+- Run the **"Debug RAG"** config.
+- What happens: the question is embedded, Qdrant finds the closest chunks by cosine similarity, the chunks are wrapped (spotlighting), and the LLM writes the answer.
+- Keep `enable_crag=False` for this phase.
+
+## Phase 3 – Sparse and hybrid RAG
+- **Sparse** (`search_mode="sparse"`): a TF-IDF keyword search. Breakpoint: `_build_sparse_index` in `vector_store.py`.
+- **Hybrid** (`search_mode="hybrid"`): dense and sparse results merged with Reciprocal Rank Fusion. Breakpoint: `fuse_rrf` in `sparse_vector_service.py`.
+- Compare all three modes on a keyword question such as "kubectl rollout undo".
+- Optional – **HyDE** (`enable_hyde=True`): the LLM writes 3 hypothetical answers, and those are embedded instead of the question. Breakpoint: `retrieve` in `hyde.py`.
+
+## Phase 4 – Reranking
+- Set `search_mode="hybrid"` and `enable_rerank=True`.
+- Breakpoint: `_rerank_local` in `reranking.py`.
+- What happens: 20 candidates are retrieved, a local cross-encoder (ms-marco-MiniLM) scores each one against the question, and the top 5 are kept.
+- Compare the chunk order and scores before and after reranking.
+
+## Phase 5 – CRAG (Corrective RAG)
+- Set `enable_crag=True`.
+- Breakpoint: `crag_pipeline` in `crag.py`.
+- What happens: gpt-4o-mini grades how relevant the chunks are (0–1). Below 0.7, it falls back to Tavily web search.
+- Test it with an off-topic question, for example "Who won the 2022 World Cup?"
+
+## Phase 6 – Self-RAG
+- Set `enable_self_reflective=True`.
+- Breakpoints: the `if enable_self_reflective` line in `rag_service.py`, and `reflect_on_answer` in `self_reflective.py`.
+- What happens: the LLM scores its own answer. Below 0.85, it rewrites the question and tries again, up to 2 retries.
+- In the output, check `reflection_score`, `reflection_iterations` and `refined_question`.
+
+## Phase 7 – Text-to-SQL and intent routing
+- Call `SQLService().generate_sql(question)` and then `execute_sql(sql)` directly.
+- Breakpoints in `sql_service.py`:
+  - `_build_schema_context` (reads the schema from information_schema)
+  - `generate_sql` (the LLM writes the SQL)
+  - `is_select_only` (blocks anything that isn't a SELECT)
+- Routing: call `run_rag()` with an SQL question, a docs question and a mixed one, and break in `classify_intent` in `router_service.py`.
+
+## Phase 8 – Full API and SQL approval (optional)
+- The full flow is the LangGraph in `app/core/graph.py`. The SQL branch pauses with `interrupt()` and waits for a human to approve.
+- Run the **"FastAPI (uvicorn)"** config, then open http://localhost:8000/docs.
+- Log in as admin@demo.local / admin123.
+- Call `/query`, then approve the SQL with `/query/sql/execute`.
+- The Streamlit UI is an optional visual alternative: run the **"Streamlit"** config.
+
+## Extra references
+- `notebooks/`: hybrid_search, reranker, crag, srag and text2sql notebooks that go with Phases 3–7.
+- `eval/`: RAGAS evaluation scripts for comparing configurations.

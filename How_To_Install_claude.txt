@@ -1,0 +1,6 @@
+npm install -g @anthropic-ai/claude-code
+
+
+claude
+
+it will ask for billing account and then u can continue

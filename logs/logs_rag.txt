@@ -1,0 +1,23 @@
+2026-11-04 17:17:31.258 | INFO     | app.api.query:query:38 - entering in query endpoint
+2026-11-04 17:17:31.394 | INFO     | app.api.query:query:44 - allowed: True
+2026-11-04 17:17:32.012 | INFO     | app.api.query:query:50 - estimated tokens: 1008
+2026-11-04 17:17:32.090 | INFO     | app.security.token_budget:check_budget:34 - checking budget for user agent@demo.local with key token_budget:agent@demo.local:2026-11-04 and estimated tokens 1008
+2026-11-04 17:17:32.198 | INFO     | app.security.token_budget:check_budget:36 - used tokens for user agent@demo.local: 1009
+2026-11-04 17:17:32.201 | INFO     | app.api.query:query:52 - budget check: ok=True, remaining=98991
+2026-11-04 17:17:32.201 | INFO     | app.api.query:query:64 - restructured input: basics of the Kubernetes cluster orchestration... (method=original)
+2026-11-04 17:17:42.347 | INFO     | app.api.query:query:67 - guard check: allowed=True, reason=None
+2026-11-04 17:18:25.130 | INFO     | app.api.query:query:73 - moderation check: allowed=True, reason=None
+2026-11-04 17:18:30.235 | INFO     | app.services.rag_service:run_rag:231 - L8 query | intent=rag mode=dense rerank=False hyde=False crag=False self_rag=False top_k=5
+2026-11-04 17:18:33.967 | INFO     | app.services.rag_service:_retrieve:72 - CRAG | enabled=False score=1.0 label=skipped used_web=False
+2026-11-04 17:18:36.977 | INFO     | app.api.query:query:117 - response: answer='```json\n{\n  "answer": "Kubernetes is a production-ready, open-source platform designed for orchestrating containerized applications. It automates the deployment, scaling, and management of application containers across clusters of hosts. The core components of a Kubernetes cluster include the control plane and worker nodes. The control plane manages the overall state of the cluster and includes components like the kube-apiserver, etcd, kube-scheduler, and kube-controller-manager. Worker nodes run the actual application workloads and include components like kubelet and kube-proxy. Kubernetes allows for the deployment of containerized applications, scaling them as needed, updating them without downtime, and ensuring they run reliably [tutorials__kubernetes-basics.html; concepts__overview__components.pdf].",\n  "sources": [\n    "tutorials__kubernetes-basics.html",\n    "concepts__overview__components.pdf"\n  ],\n  "confidence": 0.9\n}\n```' sources=['concepts__overview__what-is-kubernetes.docx', 'tutorials__kubernetes-basics.html', 'concepts__overview__components.pdf'] confidence=0.7 pending_sql=None cache_hit=False cost_saved='$0.00' metadata=ResponseMetadata(route='rag', retrieved_chunks=[], cache_hit=False, reflection_iterations=0, reflection_score=None, refined_question=None)
+2026-11-04 17:18:38.602 | INFO     | app.api.query:query:124 - redacted output: ```json
+{
+  "answer": "Kubernetes is a production-ready, open-source platform designed for orchestrating containerized applications. It automates the deployment, scaling, and management of application containers across clusters of hosts. The core components of a Kubernetes cluster include the control plane and worker nodes. The control plane manages the overall state of the cluster and includes components like the kube-apiserver, etcd, kube-scheduler, and kube-controller-manager. Worker nodes run the actual application workloads and include components like kubelet and kube-proxy. Kubernetes allows for the deployment of containerized applications, scaling them as needed, updating them without downtime, and ensuring they run reliably [tutorials__kubernetes-basics.html; concepts__overview__components.pdf].",
+  "sources": [
+    "tutorials__kubernetes-basics.html",
+    "concepts__overview__components.pdf"
+  ],
+  "confidence": 0.9
+}
+```
+2026-11-04 17:18:38.708 | INFO     | app.api.query:query:128 - consumed 1008 tokens from user agent@demo.local's budget

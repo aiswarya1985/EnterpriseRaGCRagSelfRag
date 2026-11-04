@@ -1,0 +1,12 @@
+run true data only
+
+cd D:\AgenticAI_Projects\EnterpriseRAG_Yash_Latest
+uv run python -m scripts.seed_db --noise-sample 0
+
+check qdrant collection
+
+http://localhost:6333/collections/
+
+noisy data
+
+uv run python -m scripts.seed_db --skip-true --noise-sample 50 --noise-batch 0
