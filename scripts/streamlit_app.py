@@ -7,11 +7,34 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
 import requests
 import streamlit as st
+
+# Make the project root importable so `app.utilities.logger` resolves
+# (Streamlit puts scripts/ on sys.path, not the repo root).
+_ROOT_FOR_IMPORT = str(Path(__file__).resolve().parent.parent)
+if _ROOT_FOR_IMPORT not in sys.path:
+    sys.path.insert(0, _ROOT_FOR_IMPORT)
+
+from loguru import logger  # noqa: E402
+
+from app.utilities.logger import setup_logger  # noqa: E402
+
+
+@st.cache_resource
+def _init_logger() -> bool:
+    """Streamlit re-runs this whole script on every click.
+
+    st.cache_resource makes setup_logger() run only ONCE per Streamlit process,
+    so log handlers are not removed/re-added on every rerun.
+    """
+    setup_logger()
+    logger.info("Streamlit | logger initialised")
+    return True
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -459,7 +482,16 @@ def _render_response_card(status: int, payload: Any) -> None:
     # If there is a pending SQL block, show it prominently
     pending_sql = payload.get("pending_sql")
     if pending_sql:
+        logger.info(
+            "SQL flow | pending_sql received from API (graph paused at interrupt) | query_id={} | sql={}",
+            pending_sql.get("query_id"),
+            pending_sql.get("sql"),
+        )
         st.session_state["pending_sql"] = pending_sql
+        logger.info(
+            "SQL flow | pending_sql saved in st.session_state -> user must Approve/Reject in SQL Approval tab | query_id={}",
+            pending_sql.get("query_id"),
+        )
         _render_pending_sql_card(pending_sql)
         return
 
@@ -819,11 +851,31 @@ def _query_section(base_url: str, lesson_info: dict) -> None:
 
     # Submit
     if st.button("🚀 Submit Query", use_container_width=True, key="btn_query"):
+        logger.info(
+            "Query | Submit clicked -> POST /query | question={} | flags={}",
+            question,
+            {k: v for k, v in body.items() if k != "question"},
+        )
         with st.spinner("Running query pipeline…"):
             status, payload = _request(
                 "POST", base_url, "/query",
                 token=token, json_body=body,
             )
+        if isinstance(payload, dict):
+            logger.info(
+                "Query | /query returned | status={} | route={} | pending_sql={} | cache_hit={}",
+                status,
+                (payload.get("metadata") or {}).get("route", "—"),
+                bool(payload.get("pending_sql")),
+                payload.get("cache_hit", False),
+            )
+            if payload.get("pending_sql"):
+                logger.info(
+                    "SQL flow | route=sql/hybrid -> graph paused for approval | query_id={}",
+                    payload["pending_sql"].get("query_id"),
+                )
+        else:
+            logger.warning("Query | /query returned non-JSON payload | status={}", status)
         _render_response_card(status, payload)
 
         # Persist completed results (not pending SQL) so they survive tab switches
@@ -888,12 +940,23 @@ def _sql_approval_section(base_url: str) -> None:
         c_approve, c_reject = st.columns(2)
         with c_approve:
             if st.button("✅ Approve & Execute", use_container_width=True, type="primary"):
+                logger.info(
+                    "SQL flow | APPROVE clicked -> POST /query/sql/execute (approved=True) | query_id={} | sql={}",
+                    pending.get("query_id"),
+                    pending.get("sql"),
+                )
                 with st.spinner("Executing SQL…"):
                     status, payload = _request(
                         "POST", base_url, "/query/sql/execute",
                         token=token,
                         json_body={"query_id": pending.get("query_id"), "approved": True},
                     )
+                logger.info(
+                    "SQL flow | /query/sql/execute (approved) returned | status={} | query_id={} | answer_preview={}",
+                    status,
+                    pending.get("query_id"),
+                    (payload.get("answer", "")[:200] if isinstance(payload, dict) else payload),
+                )
                 _render_response_card(status, payload)
                 if 200 <= status < 300 and isinstance(payload, dict):
                     st.session_state["last_sql_result"] = {
@@ -902,15 +965,36 @@ def _sql_approval_section(base_url: str) -> None:
                         "payload": payload,
                     }
                     st.session_state.pop("pending_sql", None)
+                    logger.info(
+                        "SQL flow | approved result stored as last_sql_result, pending_sql cleared | query_id={}",
+                        pending.get("query_id"),
+                    )
                     st.rerun()
+                else:
+                    logger.warning(
+                        "SQL flow | APPROVE failed | status={} | query_id={} | payload={}",
+                        status,
+                        pending.get("query_id"),
+                        payload,
+                    )
         with c_reject:
             if st.button("❌ Reject", use_container_width=True):
+                logger.info(
+                    "SQL flow | REJECT clicked -> POST /query/sql/execute (approved=False) | query_id={}",
+                    pending.get("query_id"),
+                )
                 with st.spinner("Rejecting…"):
                     status, payload = _request(
                         "POST", base_url, "/query/sql/execute",
                         token=token,
                         json_body={"query_id": pending.get("query_id"), "approved": False},
                     )
+                logger.info(
+                    "SQL flow | /query/sql/execute (rejected) returned | status={} | query_id={} | answer={}",
+                    status,
+                    pending.get("query_id"),
+                    (payload.get("answer", "") if isinstance(payload, dict) else payload),
+                )
                 _render_response_card(status, payload)
                 if 200 <= status < 300:
                     st.session_state["last_sql_result"] = {
@@ -919,7 +1003,18 @@ def _sql_approval_section(base_url: str) -> None:
                         "payload": {},
                     }
                     st.session_state.pop("pending_sql", None)
+                    logger.info(
+                        "SQL flow | rejection stored as last_sql_result, pending_sql cleared | query_id={}",
+                        pending.get("query_id"),
+                    )
                     st.rerun()
+                else:
+                    logger.warning(
+                        "SQL flow | REJECT failed | status={} | query_id={} | payload={}",
+                        status,
+                        pending.get("query_id"),
+                        payload,
+                    )
 
 
 def _history_section() -> None:
@@ -1282,6 +1377,7 @@ def main() -> None:
         layout="wide",
         initial_sidebar_state="expanded",
     )
+    _init_logger()  # runs setup_logger() once per process (cached)
 
     default_url = "http://localhost:8000"
     base_url = _sidebar(default_url)

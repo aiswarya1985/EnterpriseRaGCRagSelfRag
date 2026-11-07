@@ -1,0 +1,10 @@
+1. **`POST /query`** ([query.py](app/api/query.py)): FastAPI checks the request body against `QueryRequest`, the JWT is verified (`get_current_user`), and the flags are read, with `search_mode="dense"`.
+2. **Security checks:** the per-user rate limit and token budget (Upstash), input restructuring, the llm-guard injection scan, and PII redaction.
+3. **`graph.invoke(...)`** ([graph.py](app/core/graph.py)) starts LangGraph with a new `thread_id`, using `PostgresSaver` for checkpoints.
+4. **The `route_intent` node** calls `classify_intent`: keyword shortcut, then the intent cache, then gpt-4o-mini. It returns `rag`, so the graph goes to `generate_answer`.
+5. **`generate_answer` calls `run_rag`** ([rag_service.py](app/services/rag_service.py)), which checks the **`rag_answer` cache**. On a hit it returns immediately, with `cache_hit=True`.
+6. **On a miss, `_retrieve`** embeds the question with `embed_texts` (embedding cache, then OpenAI `text-embedding-3-small`, giving 1536 numbers).
+7. **`search()`** ([vector_store.py](app/services/vector_store.py)): Qdrant returns the `top_k` closest chunks by cosine similarity. Reranking is applied here if it's enabled.
+8. **`crag_pipeline`:** gpt-4o-mini grades the chunks. Below 0.7 they're replaced by Tavily web results; otherwise they're kept.
+9. **`_generate`:** the chunks are wrapped (spotlighting), and the hardened system prompt plus the question go to gpt-4o (JSON mode). Self-RAG and L9 validation run if enabled, and the answer is saved to the `rag_answer` cache.
+10. **Back in `query.py`:** the graph result becomes a `ChatResponse`, the output is moderated and PII-redacted, the token budget is charged, and the JSON response is returned.

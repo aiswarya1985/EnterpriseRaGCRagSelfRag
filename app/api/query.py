@@ -1,3 +1,4 @@
+import json
 import uuid
 from app.config import settings
 from fastapi import APIRouter, Depends, HTTPException
@@ -36,7 +37,7 @@ async def query(
     user: User = Depends(get_current_user),
 ) -> ChatResponse:
     # Layer 3: per-user sliding-window rate limit
-    logger.info
+    logger.info("entering in query")
     allowed, _, _ = is_allowed_user(
         user.username,
         limit=settings.rate_limit_requests,
@@ -92,6 +93,9 @@ async def query(
         config=config,
     )
 
+    logger.info("result:\n{}", json.dumps(result, indent=2, default=str, ensure_ascii=False))
+
+
     if "__interrupt__" in result:
         intr = result["__interrupt__"][0].value
         return ChatResponse(
@@ -112,6 +116,8 @@ async def query(
         cache_hit=result.get("cache_hit", False),
         metadata=result.get("metadata", {}),
     )
+    logger.info("response:\n{}", response.model_dump_json(indent=2))
+
 
     # Layer 6 (content moderation out): redact PII before returning
     out_allowed, redacted, _ = moderate_and_redact(response.answer)
@@ -131,7 +137,7 @@ async def execute_sql(
     body: SqlExecuteRequest,
     user: User = Depends(get_current_user),
 ) -> ChatResponse:
-    
+    logger.info(f"User {user.username} is executing SQL query with ID: {body.query_id} and approved: {body.approved}")
     config = {"configurable": {"thread_id": body.query_id}}
 
     result = graph.invoke(

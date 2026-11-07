@@ -39,6 +39,7 @@ def _flag(flags: dict | None, key: str, default):
 
 
 def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedChunk]:
+    logger.info(f"Retrieving chunks for question: {question} with flags: {flags}")
     final_top_k = int(_flag(flags, "top_k", 5))
     mode = _flag(flags, "search_mode", "dense")
     rerank = bool(_flag(flags, "enable_rerank", False))
@@ -63,7 +64,7 @@ def _retrieve(question: str, flags: dict | None = None) -> list[RetrievedChunk]:
         chunks = Reranker().rerank(question, chunks, top_k=final_top_k)
     else:
         chunks = chunks[:final_top_k]
-
+    logger.info(f"Retrieved {len(chunks)} chunks for question: {question} with flags: {flags}")
     # CRAG: grade chunks + fall back to web search if irrelevant
     chunks, evaluation, used_web = crag_pipeline(
         question=question,
@@ -97,6 +98,7 @@ def _generate(
         )["text"]
     working_q = question
     raw = _raw(working_q)
+    logger.info(f"Initial raw answer generated for question: {working_q} with length {len(raw)}")
 
     # Self-RAG: reflect on the answer; refine the question and retry if weak.
     iterations = 0
@@ -237,6 +239,7 @@ def run_rag(question: str, flags: dict | int | None = None) -> ChatResponse:
     cache_ctx = (
         _cache_context(flags) if isinstance(flags, dict) else _cache_context(None)
     )
+    logger.info(f"run_rag method:Running RAG for question: {question} with cache context: {cache_ctx}")
     cached = query_cache.get_rag_answer(question, cache_ctx)
     if cached is not None:
         resp = ChatResponse(**cached)

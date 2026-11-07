@@ -1,13 +1,13 @@
 
 import json
-import logging
+
 
 from app.config import settings
 from app.models import CRAGEvaluation, RetrievedChunk
 from app.services.llm_service import generate_with_json
 from app.services.web_search import search_web
+from loguru import logger
 
-logger = logging.getLogger(__name__)
 
 _GRADING_PROMPT = """You are evaluating whether retrieved documents are relevant to answering a user question.
 
@@ -28,6 +28,7 @@ Respond ONLY with a JSON object:
 
 
 def grade_chunks(question: str, chunks: list[RetrievedChunk]) -> CRAGEvaluation:
+    logger.info(f"Grading {len(chunks)} chunks for question: {question}")
     """Grade retrieved chunks for relevance to the question."""
     documents = (
         "\n\n".join(f"{i + 1}. {chunk.text}" for i, chunk in enumerate(chunks))
@@ -44,6 +45,7 @@ def grade_chunks(question: str, chunks: list[RetrievedChunk]) -> CRAGEvaluation:
             temperature=0.0,
         )
         parsed = json.loads(result.get("text", "{}"))
+        logger.info(f"CRAG :Grading result for question: {question}: {parsed}")
         return CRAGEvaluation(
             relevance_score=float(parsed.get("relevance_score", 0.0)),
             relevance_label=parsed.get("relevance_label", ""),
@@ -74,7 +76,8 @@ def crag_pipeline(
     chunks: list[RetrievedChunk],
     enable_crag: bool = True,
 ) -> tuple[list[RetrievedChunk], CRAGEvaluation, bool]:
-
+    logger.info(f"CRAG pipeline: question={question}, enable_crag={enable_crag}, initial_chunks={len(chunks)}")
+    logger.info(f"chunks: {[chunk.text for chunk in chunks]}")
     if not enable_crag:
         return (
             chunks,
@@ -106,6 +109,7 @@ def crag_pipeline(
 
     if should_trigger_web_search(evaluation):
         try:
+            logger.info(f"CRAG pipeline: Relevance score {evaluation.relevance_score} below threshold {settings.crag_relevance_threshold}, triggering web search for question: {question}")
             web_chunks = search_web(question)
             return (web_chunks, evaluation, True)
         except ValueError:

@@ -1,40 +1,49 @@
-2026-11-04 17:17:31.258 | INFO     | app.api.query:query:38 - entering in query endpoint
-2026-11-04 17:17:31.394 | INFO     | app.api.query:query:44 - allowed: True
-2026-11-04 17:17:32.012 | INFO     | app.api.query:query:50 - estimated tokens: 1008
-2026-11-04 17:17:32.090 | INFO     | app.security.token_budget:check_budget:34 - checking budget for user agent@demo.local with key token_budget:agent@demo.local:2026-11-04 and estimated tokens 1008
-2026-11-04 17:17:32.198 | INFO     | app.security.token_budget:check_budget:36 - used tokens for user agent@demo.local: 1009
-2026-11-04 17:17:32.201 | INFO     | app.api.query:query:52 - budget check: ok=True, remaining=98991
-2026-11-04 17:17:32.201 | INFO     | app.api.query:query:64 - restructured input: basics of the Kubernetes cluster orchestration... (method=original)
-2026-11-04 17:17:42.347 | INFO     | app.api.query:query:67 - guard check: allowed=True, reason=None
-2026-11-04 17:18:25.130 | INFO     | app.api.query:query:73 - moderation check: allowed=True, reason=None
-2026-11-04 17:18:30.235 | INFO     | app.services.rag_service:run_rag:231 - L8 query | intent=rag mode=dense rerank=False hyde=False crag=False self_rag=False top_k=5
-2026-11-04 17:18:33.967 | INFO     | app.services.rag_service:_retrieve:72 - CRAG | enabled=False score=1.0 label=skipped used_web=False
-2026-11-04 17:18:36.977 | INFO     | app.api.query:query:117 - response: answer='```json\n{\n  "answer": "Kubernetes is a production-ready, open-source platform designed for orchestrating containerized applications. It automates the deployment, scaling, and management of application containers across clusters of hosts. The core components of a Kubernetes cluster include the control plane and worker nodes. The control plane manages the overall state of the cluster and includes components like the kube-apiserver, etcd, kube-scheduler, and kube-controller-manager. Worker nodes run the actual application workloads and include components like kubelet and kube-proxy. Kubernetes allows for the deployment of containerized applications, scaling them as needed, updating them without downtime, and ensuring they run reliably [tutorials__kubernetes-basics.html; concepts__overview__components.pdf].",\n  "sources": [\n    "tutorials__kubernetes-basics.html",\n    "concepts__overview__components.pdf"\n  ],\n  "confidence": 0.9\n}\n```' sources=['concepts__overview__what-is-kubernetes.docx', 'tutorials__kubernetes-basics.html', 'concepts__overview__components.pdf'] confidence=0.7 pending_sql=None cache_hit=False cost_saved='$0.00' metadata=ResponseMetadata(route='rag', retrieved_chunks=[], cache_hit=False, reflection_iterations=0, reflection_score=None, refined_question=None)
-2026-11-04 17:18:38.602 | INFO     | app.api.query:query:124 - redacted output: ```json
+2026-11-05 22:02:42.219 | INFO     | __main__:_init_logger:36 - Streamlit | logger initialised
+2026-11-05 22:07:25.647 | INFO     | __main__:_query_section:854 - Query | Submit clicked -> POST /query | question=How many P1 incidents occurred in production clusters in the last 30 days? | flags={'top_k': 9, 'search_mode': 'dense', 'enable_rerank': True, 'enable_hyde': False, 'enable_crag': False, 'enable_self_reflective': False}
+2026-11-05 22:07:27.888 | INFO     | app.api.query:query:40 - entering in query
+2026-11-05 22:07:28.102 | INFO     | app.api.query:query:49 - User agent@demo.local is allowed to make the request.
+2026-11-05 22:07:28.898 | INFO     | app.api.query:query:53 - User agent@demo.local has 94957 tokens remaining today.
+2026-11-05 22:07:28.898 | INFO     | app.api.query:query:62 - User agent@demo.local has enough budget for the request.
+2026-11-05 22:07:28.898 | INFO     | app.api.query:query:65 - User agent@demo.local input restructured using method: original.
+2026-11-05 22:07:42.682 | INFO     | app.api.query:query:70 - User agent@demo.local input passed LLM-Guard scan: None.
+2026-11-05 22:09:10.158 | INFO     | app.api.query:query:75 - User agent@demo.local input passed content moderation: None.
+2026-11-05 22:09:10.299 | INFO     | app.services.router_service:classify_intent:49 - Classifying intent for question: How many P1 incidents occurred in production clusters in the last 30 days?
+2026-11-05 22:09:18.266 | INFO     | app.core.graph:generate_sql_node:70 - Generating SQL for question: How many P1 incidents occurred in production clusters in the last 30 days?
+2026-11-05 22:09:21.671 | INFO     | app.core.graph:request_sql_approval:80 - Requesting SQL approval for query: How many P1 incidents occurred in production clusters in the last 30 days?
+2026-11-05 22:09:21.826 | INFO     | app.api.query:query:96 - result:
 {
-  "answer": "Kubernetes is a production-ready, open-source platform designed for orchestrating containerized applications. It automates the deployment, scaling, and management of application containers across clusters of hosts. The core components of a Kubernetes cluster include the control plane and worker nodes. The control plane manages the overall state of the cluster and includes components like the kube-apiserver, etcd, kube-scheduler, and kube-controller-manager. Worker nodes run the actual application workloads and include components like kubelet and kube-proxy. Kubernetes allows for the deployment of containerized applications, scaling them as needed, updating them without downtime, and ensuring they run reliably [tutorials__kubernetes-basics.html; concepts__overview__components.pdf].",
-  "sources": [
-    "tutorials__kubernetes-basics.html",
-    "concepts__overview__components.pdf"
-  ],
-  "confidence": 0.9
+  "question": "How many P1 incidents occurred in production clusters in the last 30 days?",
+  "user_id": "agent@demo.local",
+  "flags": {
+    "top_k": 9,
+    "search_mode": "dense",
+    "enable_rerank": true,
+    "enable_hyde": false,
+    "enable_crag": false,
+    "enable_self_reflective": false
+  },
+  "intent": "sql",
+  "generated_sql": "SELECT COUNT(*) AS p1_incidents_count FROM incidents i JOIN clusters c ON i.cluster_id = c.cluster_id WHERE i.severity = 'P1' AND c.environment = 'production' AND i.started_at >= NOW() - INTERVAL '30 days';",
+  "sql_explanation": "This query counts the number of P1 severity incidents that occurred in clusters with a 'production' environment within the last 30 days. It joins the 'incidents' table with the 'clusters' table on 'cluster_id' to filter incidents based on the cluster's environment.",
+  "retrieved_chunks": [],
+  "__interrupt__": [
+    "Interrupt(value={'type': 'sql_approval_required', 'sql': \"SELECT COUNT(*) AS p1_incidents_count FROM incidents i JOIN clusters c ON i.cluster_id = c.cluster_id WHERE i.severity = 'P1' AND c.environment = 'production' AND i.started_at >= NOW() - INTERVAL '30 days';\", 'explanation': \"This query counts the number of P1 severity incidents that occurred in clusters with a 'production' environment within the last 30 days. It joins the 'incidents' table with the 'clusters' table on 'cluster_id' to filter incidents based on the cluster's environment.\"}, id='fb23f5053cef2cae9e8f6f3e3e45a402')"
+  ]
 }
+2026-11-05 22:09:21.834 | INFO     | __main__:_query_section:865 - Query | /query returned | status=200 | route=rag | pending_sql=True | cache_hit=False
+2026-11-05 22:09:21.834 | INFO     | __main__:_query_section:873 - SQL flow | route=sql/hybrid -> graph paused for approval | query_id=e8e9104b-4e4f-41ac-ab5e-dc822e7ec06e
+2026-11-05 22:09:21.838 | INFO     | __main__:_render_response_card:485 - SQL flow | pending_sql received from API (graph paused at interrupt) | query_id=e8e9104b-4e4f-41ac-ab5e-dc822e7ec06e | sql=SELECT COUNT(*) AS p1_incidents_count FROM incidents i JOIN clusters c ON i.cluster_id = c.cluster_id WHERE i.severity = 'P1' AND c.environment = 'production' AND i.started_at >= NOW() - INTERVAL '30 days';
+2026-11-05 22:09:21.838 | INFO     | __main__:_render_response_card:491 - SQL flow | pending_sql saved in st.session_state -> user must Approve/Reject in SQL Approval tab | query_id=e8e9104b-4e4f-41ac-ab5e-dc822e7ec06e
+2026-11-05 22:11:16.119 | INFO     | __main__:_sql_approval_section:943 - SQL flow | APPROVE clicked -> POST /query/sql/execute (approved=True) | query_id=e8e9104b-4e4f-41ac-ab5e-dc822e7ec06e | sql=SELECT COUNT(*) AS p1_incidents_count FROM incidents i JOIN clusters c ON i.cluster_id = c.cluster_id WHERE i.severity = 'P1' AND c.environment = 'production' AND i.started_at >= NOW() - INTERVAL '30 days';
+2026-11-05 22:11:18.161 | INFO     | app.api.query:execute_sql:140 - User agent@demo.local is executing SQL query with ID: e8e9104b-4e4f-41ac-ab5e-dc822e7ec06e and approved: True
+2026-11-05 22:11:18.250 | INFO     | app.core.graph:request_sql_approval:80 - Requesting SQL approval for query: How many P1 incidents occurred in production clusters in the last 30 days?
+2026-11-05 22:11:18.268 | INFO     | app.core.graph:execute_sql:89 - Executing SQL for query: How many P1 incidents occurred in production clusters in the last 30 days?
+2026-11-05 22:11:18.913 | INFO     | __main__:_sql_approval_section:954 - SQL flow | /query/sql/execute (approved) returned | status=200 | query_id=e8e9104b-4e4f-41ac-ab5e-dc822e7ec06e | answer_preview=Query results:
 ```
-2026-11-04 17:18:38.708 | INFO     | app.api.query:query:128 - consumed 1008 tokens from user agent@demo.local's budget
-2026-11-04 18:59:44.921 | INFO     | app.api.query:query:48 - User agent@demo.local is allowed to make the request.
-2026-11-04 18:59:45.684 | INFO     | app.api.query:query:52 - User agent@demo.local has 97983 tokens remaining today.
-2026-11-04 18:59:45.684 | INFO     | app.api.query:query:61 - User agent@demo.local has enough budget for the request.
-2026-11-04 18:59:45.684 | INFO     | app.api.query:query:64 - User agent@demo.local input restructured using method: original.
-2026-11-04 18:59:59.198 | INFO     | app.api.query:query:69 - User agent@demo.local input passed LLM-Guard scan: None.
-2026-11-04 19:00:50.658 | INFO     | app.api.query:query:74 - User agent@demo.local input passed content moderation: None.
-2026-11-04 19:00:59.432 | INFO     | app.services.rag_service:run_rag:248 - L8 query | intent=rag mode=dense rerank=False hyde=False crag=False self_rag=False top_k=5
-2026-11-04 19:01:03.617 | INFO     | app.services.rag_service:_retrieve:73 - CRAG | enabled=False score=1.0 label=skipped used_web=False
-2026-11-04 19:01:06.776 | INFO     | app.services.rag_service:_generate:128 - L9 validation OK | confidence=0.9 sources=['concepts__configuration__secret.txt']
-2026-11-04 19:01:08.529 | INFO     | app.api.query:query:124 - User agent@demo.local consumed 1006 tokens for the request.
-2026-11-04 19:04:45.214 | INFO     | app.api.query:query:48 - User agent@demo.local is allowed to make the request.
-2026-11-04 19:04:45.288 | INFO     | app.api.query:query:52 - User agent@demo.local has 96977 tokens remaining today.
-2026-11-04 19:04:45.288 | INFO     | app.api.query:query:61 - User agent@demo.local has enough budget for the request.
-2026-11-04 19:04:45.288 | INFO     | app.api.query:query:64 - User agent@demo.local input restructured using method: original.
-2026-11-04 19:04:46.018 | INFO     | app.api.query:query:69 - User agent@demo.local input passed LLM-Guard scan: None.
-2026-11-04 19:04:46.753 | INFO     | app.api.query:query:74 - User agent@demo.local input passed content moderation: None.
-2026-11-04 19:04:48.479 | INFO     | app.api.query:query:124 - User agent@demo.local consumed 1006 tokens for the request.
+[
+  {
+    "p1_incidents_count": 0
+  }
+]
+```
+2026-11-05 22:11:18.937 | INFO     | __main__:_sql_approval_section:968 - SQL flow | approved result stored as last_sql_result, pending_sql cleared | query_id=e8e9104b-4e4f-41ac-ab5e-dc822e7ec06e

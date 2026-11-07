@@ -3,10 +3,10 @@ import logging
 from app.config import settings
 from app.models import RetrievedChunk
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 def search_web(query: str, max_results: int = 5) -> list[RetrievedChunk]:
-
+    logger.info(f"Performing web search for query: {query} with max_results: {max_results}")
     if not settings.tavily_api_key:
         raise ValueError("Tavily API key not configured")
 

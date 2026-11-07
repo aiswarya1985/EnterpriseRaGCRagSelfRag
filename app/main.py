@@ -1,3 +1,4 @@
+import pyarrow
 from fastapi import FastAPI
 
 from app.api import admin, auth, query

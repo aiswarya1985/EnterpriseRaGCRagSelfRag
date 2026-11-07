@@ -1,5 +1,4 @@
 import json
-import logging
 from typing import Literal
 
 from app.config import settings
@@ -18,7 +17,7 @@ Respond ONLY with a JSON object in this exact format:
 {"intent": "sql"} or {"intent": "rag"} or {"intent": "hybrid"}
 """
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 _DOCUMENT_HINTS = (
@@ -47,6 +46,7 @@ def _looks_like_document_question(question: str) -> bool:
 
 
 def classify_intent(question: str) -> Intent:
+    logger.info(f"Classifying intent for question: {question}")
     if _looks_like_document_question(question):
         query_cache.set_intent(question, "rag")
         return "rag"

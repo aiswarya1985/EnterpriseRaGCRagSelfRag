@@ -2,28 +2,38 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "FastAPI (admin.py)",
+      "name": "FastAPI (uvicorn)",
       "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
-      "args": [
-        "app.main:app",
-        "--reload",
-        "--port",
-        "8000"
-      ],
+      "args": ["app.main:app", "--port", "8000"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "PATH": "C:\\Program Files\\PostgreSQL\\18\\bin;${env:PATH}",
+        "PSYCOPG_IMPL": "python"
+      },
       "jinja": true,
       "justMyCode": true
     },
     {
-      "name": "Streamlit (app.py)",
+      "name": "Streamlit",
       "type": "debugpy",
       "request": "launch",
       "module": "streamlit",
-      "args": [
-        "run",
-        "scripts/streamlit_app.py"
-      ],
+      "args": ["run", "scripts/streamlit_app.py", "--server.port", "8501"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Seed DB + Ingest docs",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "scripts.seed_db",
+      "args": ["--noise-sample", "0"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
       "justMyCode": true
     },
     {
@@ -31,10 +41,7 @@
       "type": "debugpy",
       "request": "launch",
       "module": "eval.run_ragas",
-      "args": [
-        "--profile",
-        "all"
-      ],
+      "args": ["--profile", "all"],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "justMyCode": true
@@ -53,10 +60,7 @@
   "compounds": [
     {
       "name": "Full Stack Debug (Streamlit + FastAPI)",
-      "configurations": [
-        "FastAPI (admin.py)",
-        "Streamlit (app.py)"
-      ],
+      "configurations": ["FastAPI (uvicorn)", "Streamlit"],
       "stopAll": true
     }
   ]

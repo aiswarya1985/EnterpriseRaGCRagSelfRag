@@ -1,10 +1,9 @@
-import logging
 from typing import cast
 
 from app.config import settings
 from app.models import RetrievedChunk
+from loguru import logger
 
-logger = logging.getLogger(__name__)
 
 
 class Reranker:
@@ -38,7 +37,7 @@ class Reranker:
     ) -> list[RetrievedChunk]:
         if not chunks:
             return []
-        
+        logger.info(f"Reranking {len(chunks)} chunks for query: {query}")
         top_k = top_k or settings.reranker_initial_top_k
         top_k = min(top_k, len(chunks))
 
@@ -75,6 +74,7 @@ class Reranker:
         chunks: list[RetrievedChunk],
         top_k: int,
     ) -> list[RetrievedChunk]:
+        logger.info(f"Using Voyage reranker for query: {query} with top_k: {top_k}")
         client = self._load_voyage_client()
         documents = [chunk.text for chunk in chunks]
         result = client.rerank(
@@ -96,4 +96,5 @@ class Reranker:
                     score=float(item.relevance_score),
                 )
             )
+        logger.info(f"Reranked {(reranked)} chunks for query: {query}")    
         return reranked

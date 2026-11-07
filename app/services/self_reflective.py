@@ -1,6 +1,7 @@
 
+from asyncio.log import logger
 import json
-import logging
+from loguru import logger
 
 from app.config import settings
 from app.models import ReflectionResult
@@ -75,9 +76,10 @@ def reflect_on_answer(
             temperature=0.0,
         )
         parsed = json.loads(response["text"])
+        logger.info(f"Reflection result for question: {question}: {parsed}")
         return ReflectionResult(**parsed)
     except Exception as exc:
-        logging.error("Reflection failed: %s", exc)
+        logger.error("Reflection failed: %s", exc)
         return ReflectionResult(
             reflection_score=1.0,
             needs_regeneration=False,

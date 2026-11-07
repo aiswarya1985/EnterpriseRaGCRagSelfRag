@@ -1,3 +1,4 @@
+from asyncio.log import logger
 import datetime
 import decimal
 import json
@@ -16,7 +17,7 @@ from app.services.llm_service import generate
 from app.services.rag_service import run_rag
 from app.services.router_service import classify_intent
 from app.services.sql_service import SQLService
-
+from loguru import logger
 
 sql_service = SQLService()
 
@@ -52,6 +53,7 @@ def route_intent(state: GraphState) -> dict:
 
 
 def retrieve_rag(state: GraphState) -> dict:
+    logger.info(f"Retrieving RAG for question: {state['question']}")
     response = run_rag(state["question"], flags=state.get("flags", {}))
     return {
         "retrieved_chunks": response.sources,
@@ -65,6 +67,7 @@ def retrieve_rag(state: GraphState) -> dict:
 
 
 def generate_sql_node(state: GraphState) -> dict:
+    logger.info(f"Generating SQL for question: {state['question']}")
     result = sql_service.generate_sql(state["question"])
     return {
         "generated_sql": result["sql"],
@@ -74,6 +77,7 @@ def generate_sql_node(state: GraphState) -> dict:
 
 
 def request_sql_approval(state: GraphState) -> dict:
+    logger.info(f"Requesting SQL approval for query: {state['question']}")
     approval = interrupt({
         "type": "sql_approval_required",
         "sql": state["generated_sql"],
@@ -82,6 +86,7 @@ def request_sql_approval(state: GraphState) -> dict:
     return {"sql_approved": approval.get("approved", False)}
 
 def execute_sql(state: GraphState) -> dict:
+    logger.info(f"Executing SQL for query: {state['question']}")
     """Execute approved SQL and store results."""
     if not state.get("sql_approved"):
         return {"sql_rows": [], "final_answer": "SQL query was not approved."}
